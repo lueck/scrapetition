@@ -43,16 +43,18 @@ comment = Comment
 
 
 -- | Collect URLs to further comments.
-collectUrls :: Scraper String [URL]
-collectUrls =
-  commentJsLoaderUrls <|>
-  commentSectionUrls <|>
-  commentNextButtonUrl -- FIXME: <+> ???
+collectCommentUrls :: Scraper String [URL]
+collectCommentUrls = (\a b c -> concat [a, b, c])
+  <$> commentJsLoaderUrls
+  <*> commentSectionUrls
+  <*> commentNextButtonUrl -- FIXME: can we use <+> or <> ???
+
 
 -- | Collect the URLs under the comments.
 commentJsLoaderUrls :: Scraper String [URL]
 commentJsLoaderUrls =
   chroots ("div" @: [hasClass "js-comment-loader"]) link
+
 
 -- | Collect the URL from the next button in the footer.
 commentNextButtonUrl :: Scraper String [URL]
@@ -60,10 +62,12 @@ commentNextButtonUrl =
   chroots ("div" @: [hasClass "comment-section__item"] //
            "a" @: [hasClass "pager__button--next"]) link
 
+
 -- | Collect the URLs from the pager in the footer.
 commentSectionUrls :: Scraper String [URL]
 commentSectionUrls =
   chroots ("div" @: [hasClass "comment-section__item"] // "li") link
+
 
 -- | Return the href attribute of an html ancor.
 link :: Scraper String URL

@@ -105,10 +105,24 @@ test_commentNextButtonUrl = do
     (Just 1)
     (fmap length urls)
 
-
-test_commentCollectUrls = do
+test_collectCommentUrls = do
   s <- readFile testfile
-  let urls = scrapeStringLike s collectUrls
+  let urls = scrapeStringLike s collectCommentUrls
   assertEqual
     (Just 9)
     (fmap length urls)
+
+test_collectCommentUrlsUrls = do
+  s <- readFile testfile
+  let urls = scrapeStringLike s collectCommentUrls
+  assertEqual
+    (Just ["https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377209#cid-50377129",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377186#cid-50377144",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377368#cid-50377152",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=2#comments",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=3#comments",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=4#comments",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=5#comments",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=35#comments",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=2#comments"])
+    urls
