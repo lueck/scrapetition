@@ -1,0 +1,3 @@
+* Netz über Scalpel
+** Mit Functoren, Applicative und Monaden:
+http://hs.eraveline.eu/posts/scalpel.html

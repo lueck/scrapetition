@@ -1,0 +1,74 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 8c3bf5d5fd17e96bef653b942edd7330fd25abcd893d63f2d9fededb061e8263
+
+name:           scrapetition
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/lueck/scrapetition#readme>
+homepage:       https://github.com/lueck/scrapetition#readme
+bug-reports:    https://github.com/lueck/scrapetition/issues
+author:         Christian Lück
+maintainer:     christian.lueck@ruhr-uni-bochum.de
+copyright:      2019 Christian Lück
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/lueck/scrapetition
+
+library
+  exposed-modules:
+      Network.Scrapetition.Comment
+      Network.Scrapetition.Parsers.ZeitDe
+  other-modules:
+      Paths_scrapetition
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , lens
+    , scalpel
+    , split
+  default-language: Haskell2010
+
+executable scrapetition
+  main-is: Main.hs
+  other-modules:
+      Paths_scrapetition
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , lens
+    , scalpel
+    , scrapetition
+    , split
+  default-language: Haskell2010
+
+test-suite scrapetition-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Test.Network.Scrapetition.Parsers.ZeitDe
+      Paths_scrapetition
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      HTF
+    , base >=4.7 && <5
+    , lens
+    , scalpel
+    , scrapetition
+    , split
+  default-language: Haskell2010

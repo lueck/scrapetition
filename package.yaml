@@ -1,0 +1,59 @@
+name:                scrapetition
+version:             0.1.0.0
+github:              "lueck/scrapetition"
+license:             BSD3
+author:              "Christian Lück"
+maintainer:          "christian.lueck@ruhr-uni-bochum.de"
+copyright:           "2019 Christian Lück"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            A web scraper for collecting comments
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/lueck/scrapetition#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  dependencies:
+  - scalpel
+  - split
+  - lens
+                 
+executables:
+  scrapetition:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - scrapetition
+    - scalpel
+    - split
+    - lens
+
+tests:
+  scrapetition-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - scrapetition
+    - HTF
+    - scalpel
+    - split
+    - lens
