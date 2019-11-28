@@ -11,6 +11,9 @@ import Network.Scrapetition.Parsers.ZeitDe
 
 testfile = "test/examples/zeit.de.html"
 
+testurl = "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache/komplettansicht"
+
+
 test_commentCount = do
   s <- readFile testfile
   let cs = scrapeStringLike s comments
@@ -81,9 +84,31 @@ test_commentDownVoters = do
            Nothing])
     (fmap (map _comment_downVoters) cs)
 
-test_commentMoreUrls = do
+test_commentCommentJsLoaderUrls = do
   s <- readFile testfile
-  let urls = scrapeStringLike s moreUrls
+  let urls = scrapeStringLike s commentJsLoaderUrls
   assertEqual
-    12
-    (length urls)
+    (Just 3)
+    (fmap length urls)
+
+test_commentSectionUrls = do
+  s <- readFile testfile
+  let urls = scrapeStringLike s commentSectionUrls
+  assertEqual
+    (Just 5)
+    (fmap length urls)
+
+test_commentNextButtonUrl = do
+  s <- readFile testfile
+  let urls = scrapeStringLike s commentNextButtonUrl
+  assertEqual
+    (Just 1)
+    (fmap length urls)
+
+
+test_commentCollectUrls = do
+  s <- readFile testfile
+  let urls = scrapeStringLike s collectUrls
+  assertEqual
+    (Just 9)
+    (fmap length urls)
