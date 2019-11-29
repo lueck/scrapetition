@@ -1,5 +1,8 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Network.Scrapetition.Comment
   where
+
+import Control.Lens
 
 data Comment = Comment
   { _comment_text :: String
@@ -13,7 +16,10 @@ data Comment = Comment
   , _comment_downVotes :: Maybe Int
   , _comment_upVoters :: Maybe [String]
   , _comment_downVoters :: Maybe [String]
-  -- , _comment_url :: String
+  , _comment_url :: Maybe String
   -- , _comment_scrapeDate :: String
   -- , _comment_scrapeMethod :: String
   } deriving (Eq, Show)
+
+makeLenses ''Comment
+

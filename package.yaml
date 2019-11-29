@@ -28,6 +28,8 @@ library:
   - scalpel
   - split
   - lens
+  - network-uri
+  - hashmap
                  
 executables:
   scrapetition:
@@ -42,6 +44,9 @@ executables:
     - scalpel
     - split
     - lens
+    - network-uri
+    - hashmap
+    - optparse-applicative
 
 tests:
   scrapetition-test:
@@ -57,3 +62,5 @@ tests:
     - scalpel
     - split
     - lens
+    - network-uri
+    - hashmap

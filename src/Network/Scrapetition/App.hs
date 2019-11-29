@@ -4,6 +4,7 @@ module Network.Scrapetition.App
 import Control.Concurrent
 import Text.HTML.Scalpel
 import Data.Maybe
+import Control.Lens
 
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Env
@@ -19,7 +20,7 @@ runScraper conf scraper urls seen = do
     Just next -> do
       print $ "Scraping " ++ next
       result <- scrapeURL next scraper
-      let comments = fromMaybe [] $ fmap fst result
+      let comments = fromMaybe [] $ fmap ((map (& comment_url .~ Just next)) . fst) result
           newUrls = fromMaybe [] $ fmap snd result
       print $ "Found " ++ (show $ length comments) ++ " comments, and "
         ++ (show $ length newUrls) ++ " URLs."
@@ -33,3 +34,4 @@ nextUrl [] _ = Nothing
 nextUrl (x:xs) seen
   | x `elem` seen = nextUrl xs seen
   | otherwise = Just x
+

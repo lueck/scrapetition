@@ -9,8 +9,16 @@ import Text.HTML.Scalpel
 import Data.List.Split
 import Data.List
 import Data.Char
+import Control.Lens
 
 import Network.Scrapetition.Comment
+
+-- | Generate a unique identifier for a comment. For zeit.de this is
+-- the domain name concatenated with the id of the comment.
+identifier :: Comment -> String
+identifier comment =
+  "https://www.zeit.de/|" ++ comment^.comment_id
+
 
 -- | Scrape comments and a reasonable set of URLs.
 commentsThreadsAndNext :: Scraper String ([Comment], [URL])
@@ -37,7 +45,7 @@ comment = Comment
        <|> (pure Nothing))
   <*> (attr "id" $ "article")
   <*> ((fmap (Just . fragmentOrUrl) $ attr "href" $ "a" @: [hasClass "comment__origin"])
-       <|> (pure Nothing))
+       <|> (pure Nothing)) -- comment__origin is parent! Verified!
   <*> (pure Nothing) -- FIXME: is there a thread id available?
   <*> (fmap (Just . countOfFans) $
        attr "data-fans" $
@@ -46,7 +54,8 @@ comment = Comment
   <*> (fmap (Just . (splitOn ",")) $
        attr "data-fans" $
        "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
-  <*> (pure Nothing)
+  <*> (pure Nothing) -- down voters
+  <*> (pure Nothing) -- url
 
 
 -- | Collect URLs to further comments.
