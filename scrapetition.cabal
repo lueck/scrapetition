@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8c3bf5d5fd17e96bef653b942edd7330fd25abcd893d63f2d9fededb061e8263
+-- hash: 5753ba11e551d8528f6f294217fb002ea50c8a3435a9a535ac9a628d40eb7351
 
 name:           scrapetition
 version:        0.1.0.0
@@ -27,8 +27,10 @@ source-repository head
 
 library
   exposed-modules:
+      Network.Scrapetition.App
       Network.Scrapetition.Comment
-      Network.Scrapetition.Parsers.ZeitDe
+      Network.Scrapetition.Env
+      Network.Scrapetition.Scrapers.ZeitDe
   other-modules:
       Paths_scrapetition
   hs-source-dirs:
@@ -59,7 +61,7 @@ test-suite scrapetition-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Network.Scrapetition.Parsers.ZeitDe
+      Test.Network.Scrapetition.Scrapers.ZeitDe
       Paths_scrapetition
   hs-source-dirs:
       test
