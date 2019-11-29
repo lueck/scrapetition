@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Network.Scrapetition.Parsers.ZeitDe
+module Network.Scrapetition.Scrapers.ZeitDe
   where
 
 -- | Scrape http://www.zeit.de for comments in the discussion.
@@ -11,6 +11,13 @@ import Data.List
 import Data.Char
 
 import Network.Scrapetition.Comment
+
+-- | Scrape comments and a reasonable set of URLs.
+commentsThreadsAndNext :: Scraper String ([Comment], [URL])
+commentsThreadsAndNext = (\cs urls -> (cs, urls))
+  <$> comments
+  <*> threadsAndNextUrl
+
 
 -- | Scrape all comments from a page.
 comments :: Scraper String [Comment]
@@ -49,6 +56,12 @@ collectCommentUrls = (\a b c -> concat [a, b, c])
   <*> commentSectionUrls
   <*> commentNextButtonUrl -- FIXME: can we use <+> or <> ???
 
+-- | Collect the URLs for completing the shown threads plus the next
+-- page of comments.
+threadsAndNextUrl :: Scraper String [URL]
+threadsAndNextUrl = (\a b -> concat [a, b])
+  <$> commentJsLoaderUrls
+  <*> commentNextButtonUrl
 
 -- | Collect the URLs under the comments.
 commentJsLoaderUrls :: Scraper String [URL]

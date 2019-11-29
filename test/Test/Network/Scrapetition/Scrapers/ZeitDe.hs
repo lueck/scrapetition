@@ -1,13 +1,13 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Test.Network.Scrapetition.Parsers.ZeitDe where
+module Test.Network.Scrapetition.Scrapers.ZeitDe where
 
 import Test.Framework
 
 import Text.HTML.Scalpel (scrapeStringLike)
 
 import Network.Scrapetition.Comment
-import Network.Scrapetition.Parsers.ZeitDe
+import Network.Scrapetition.Scrapers.ZeitDe
 
 testfile = "test/examples/zeit.de.html"
 
@@ -103,6 +103,13 @@ test_commentNextButtonUrl = do
   let urls = scrapeStringLike s commentNextButtonUrl
   assertEqual
     (Just 1)
+    (fmap length urls)
+
+test_threadsAndNextUrl = do
+  s <- readFile testfile
+  let urls = scrapeStringLike s threadsAndNextUrl
+  assertEqual
+    (Just 4)
     (fmap length urls)
 
 test_collectCommentUrls = do

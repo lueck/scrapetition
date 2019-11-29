@@ -4,6 +4,6 @@ module Main where
 import Test.Framework
 import Test.Framework.BlackBoxTest
 
-import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Parsers.ZeitDe
+import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Scrapers.ZeitDe
 
 main = htfMain htf_importedTests
