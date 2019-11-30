@@ -30,6 +30,7 @@ library:
   - lens
   - network-uri
   - hashmap
+  - sqlite-simple
                  
 executables:
   scrapetition:
@@ -46,7 +47,9 @@ executables:
     - lens
     - network-uri
     - hashmap
+    - sqlite-simple
     - optparse-applicative
+    
 
 tests:
   scrapetition-test:
@@ -64,3 +67,4 @@ tests:
     - lens
     - network-uri
     - hashmap
+    - sqlite-simple
