@@ -2,14 +2,18 @@
 module Network.Scrapetition.Comment
   where
 
+-- | This modules defines a record for scraping discussion comments
+-- from social media.
+
 import Control.Lens
 import Control.Applicative
-import Database.SQLite.Simple
-import Database.SQLite.Simple.FromRow
+import Database.HDBC
 
 import Network.Scrapetition.Item
--- import Network.Scrapetition.SQLite
+import Network.Scrapetition.Utils
 
+
+-- * Data type for comments.
 
 -- | A record for comments on social media.
 data Comment = Comment
@@ -31,11 +35,12 @@ data Comment = Comment
 
 makeLenses ''Comment
 
+
 instance Item Comment where
   itemUrl c = _comment_url c
   setItemUrl c url = c & comment_url .~ url
   itemId c = _comment_id c
-  identifyItem c = _comment_id c -- FIXME
+  identifyItem c = commentIdentifier Nothing Nothing c
 
 instance ThreadItem Comment where
   itemParent c = _comment_parent c
@@ -43,29 +48,37 @@ instance ThreadItem Comment where
   setItemThread c t = c & comment_thread .~ t
 
 
-instance FromRow Comment where
-  fromRow = Comment
-    <$> field -- _comment_text
-    <*> field -- _commant_user
-    <*> field -- _commant_name
-    <*> field -- _commant_date
-    <*> field -- _commant_id
-    <*> field -- _commant_parent
-    <*> field -- _commant_thread
-    <*> field -- _commant_upVotes
-    <*> field -- _commant_downVotes
-    <*> (pure $ Nothing) -- _commant_upVoters
-    <*> (pure $ Nothing) -- _commant_downVoters
-    <*> field -- _commant_url
+-- | Generate an identifier for a 'Comment'.
+commentIdentifier :: Maybe String -> Maybe String -> Comment -> String
+commentIdentifier = identifier "|comment|"
 
-instance ToRow Comment where
-  toRow c@(Comment t u n d i p th uv dv _ _ url) =
-    -- upVoters and downVoters can not be serialized to a row. There
-    -- must be a crossing table for this kind of data.
-    toRow (t, u, n, d, i, p, th, uv, dv, url)
-    -- FIXME: toRow must generate an identifier! (identify "|comment|" Nothing Nothing c)
+-- * HDBC
 
-    
+-- | Prepares the insert statement.
+commentInsertStmt :: String            -- ^ table name
+                  -> String
+commentInsertStmt tName =
+  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+commentToSql :: (Comment -> String) -> Comment -> [SqlValue]
+commentToSql f c =
+  [ toSql $ f c
+  , toSql $ c^.comment_text
+  , toSql $ c^.comment_user
+  , toSql $ c^.comment_name
+  , toSql $ c^.comment_date
+  , toSql $ c^.comment_id
+  , toSql $ c^.comment_parent
+  , toSql $ c^.comment_thread
+  , toSql $ c^.comment_upVotes
+  , toSql $ c^.comment_downVotes
+  , toSql $ c^.comment_url
+  ]
+
+
+-- * SQL Strings 
+
+-- | SQL string for creating a table for 'Comment' items.
 createCommentTable :: String -> String
 createCommentTable tName =
   "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
@@ -84,11 +97,21 @@ createCommentTable tName =
   "url TEXT)"
 
 
+-- | SQL string for creating a table for 'User'.
+createUserTable :: String -> String
+createUserTable tName =
+  "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
+  "key TEXT PRIMARY KEY,\n" ++
+  "user TEXT,\n" ++
+  "name TEXT)\n"
+
+
+-- | SQL string for creating a crossing table for votes on 'Comment'
+-- items by 'User'.
 createVotingTable :: String -> String -> String -> String
 createVotingTable commentsName usersName tName =
-  "CREATE TABEL IF NOT EXISTS " ++ tName ++ " (\n" ++
+  "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
   "user TEXT NOT NULL REFERENCES " ++ usersName ++ "(user),\n" ++
   "comment TEXT NOT NULL REFERENCES " ++ commentsName ++ "(key),\n" ++
   "vote TEXT,\n" ++
   "CONSTRAINT unique_vote UNIQUE (user, comment, vote))\n"
-

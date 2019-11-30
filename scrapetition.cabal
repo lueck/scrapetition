@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3acae53ea8f8ea7ead399e0c6e490b86c2d8930673b8f406aca26d0118d26c22
+-- hash: 1dc269c706c2f8ee06bdcf033f9f571c08bf03a7c1bf48fd5cdd4234f35907d3
 
 name:           scrapetition
 version:        0.1.0.0
@@ -32,20 +32,19 @@ library
       Network.Scrapetition.Env
       Network.Scrapetition.Item
       Network.Scrapetition.Scrapers.ZeitDe
-      Network.Scrapetition.SQLite
       Network.Scrapetition.Utils
   other-modules:
       Paths_scrapetition
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+      HDBC
+    , base >=4.7 && <5
     , hashmap
     , lens
     , network-uri
     , scalpel
     , split
-    , sqlite-simple
   default-language: Haskell2010
 
 executable scrapetition
@@ -56,7 +55,9 @@ executable scrapetition
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      HDBC
+    , HDBC-sqlite3
+    , base >=4.7 && <5
     , hashmap
     , lens
     , network-uri
@@ -64,15 +65,12 @@ executable scrapetition
     , scalpel
     , scrapetition
     , split
-    , sqlite-simple
   default-language: Haskell2010
 
 test-suite scrapetition-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Test.Network.Scrapetition.App
-      Test.Network.Scrapetition.Comment
       Test.Network.Scrapetition.Scrapers.ZeitDe
       Test.Network.Scrapetition.Utils
       Paths_scrapetition
@@ -80,7 +78,8 @@ test-suite scrapetition-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      HTF
+      HDBC
+    , HTF
     , base >=4.7 && <5
     , hashmap
     , lens
@@ -88,5 +87,4 @@ test-suite scrapetition-test
     , scalpel
     , scrapetition
     , split
-    , sqlite-simple
   default-language: Haskell2010

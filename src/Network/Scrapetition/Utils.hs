@@ -83,14 +83,17 @@ propagateThreads'' lastCnt f cs
   | cntDone == Map.size cs
   -- All comments done. Return map.
   = cs
-  | cntDone == 0
-  -- No comments done yet. Assign threads to comments without parents
-  -- and recurse.
+  | Map.size startersNotDone > 0  -- cntDone == 0 would not allow subsequent propagation
+  -- Thread starters without thread ID. Assign threads to comments
+  -- without parents and recurse.
   = propagateThreads'' 0 f (Map.map (\c -> if (itemParent c) == Nothing then (setItemThread c $ Just $ itemId c) else c) cs)
   | otherwise
   -- Somewhere in the middle: Propagate some IDs and do recursion.
   = propagateThreads'' cntDone f $ Map.map propagate cs
   where
+    startersNotDone = Map.filter ((&&)
+                                  <$> (isNothing . itemParent)
+                                  <*> (isNothing . itemThread)) cs
     done = Map.filter (isJust . itemThread) cs
     cntDone = Map.size done
     -- propagate :: (Item i, ThreadItem i) => i -> i
