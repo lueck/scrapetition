@@ -10,7 +10,7 @@ import qualified Data.HashMap as Map
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Env
 import Network.Scrapetition.App
-import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (commentsThreadsAndNext, identifier)
+import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (commentsThreadsAndNext, identifierZeitDe)
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (comments, comments')
 
 
@@ -41,5 +41,5 @@ run (Opts url env) = do
   -- cs <- scrapeURL url ZeitDe.comments
   print cs
   print $ "Scraped " ++ (show $ length cs) ++ " comments"
-  let cs' = Map.fromList(zip (map ZeitDe.identifier cs) cs)
+  let cs' = Map.fromList(zip (map (ZeitDe.identifierZeitDe Nothing) cs) cs)
   print $ (show $ length $ Map.keys cs') ++ " are different."

@@ -12,12 +12,13 @@ import Data.Char
 import Control.Lens
 
 import Network.Scrapetition.Comment
+import Network.Scrapetition.Utils
+
 
 -- | Generate a unique identifier for a comment. For zeit.de this is
--- the domain name concatenated with the id of the comment.
-identifier :: Comment -> String
-identifier comment =
-  "https://www.zeit.de/|" ++ comment^.comment_id
+-- the domain name concatenated with an comment ID.
+identifierZeitDe :: Maybe String -> Comment -> String
+identifierZeitDe = identifier' (Just "www.zeit.de")
 
 
 -- | Scrape comments and a reasonable set of URLs.
