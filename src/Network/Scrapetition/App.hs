@@ -7,6 +7,8 @@ import Data.Maybe
 import Control.Lens
 import qualified Database.HDBC as DB
 import Control.Monad.Reader
+import Data.Time
+import System.Environment
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
@@ -18,10 +20,10 @@ import Network.Scrapetition.Logging as L
 
 
 -- | Run a scraper and call it recursively on the scraped URLs. Items
--- are collected and may be stored in a database, depending of 'Env'
+-- are collected and may be stored in a database, depending on 'Env'
 -- passed in ReaderT.
 runScraper :: (DB.IConnection c,
-               Item i, ThreadItem i, HasUser i, HasVoters i) =>
+               Item i, ThreadItem i, HasUser i, HasVoters i, HasMeta i) =>
               [URL]                    -- ^ URLs to scrape
            -> [URL]                    -- ^ URLs done
            -> App c i ([i]) -- same as -> ReaderT (Env c i) IO ([i])
@@ -36,6 +38,8 @@ runScraper urls seen = do
       voteToSql = _env_voteToSql conf
       insertVoteStmt = _env_insertVoteStmt conf
       scraper = _env_scraper conf
+  now <- liftIO getCurrentTime
+  appString <- getAppString
   case maybeNext of
     Nothing -> do
       L.log "All URLs seen."
@@ -43,7 +47,11 @@ runScraper urls seen = do
     Just next -> do
       L.log $ "Scraping " ++ next
       result <- liftIO $ scrapeURL next scraper
-      let comments' = fromMaybe [] $ fmap ((map (flip setItemUrl $ Just next)) . fst) result
+      let comments' = fromMaybe [] $ fmap ((map
+                                            ((flip setItemScraper $ Just appString) .
+                                             (flip setItemScrapeDate $ Just now) .
+                                             (flip setItemUrl $ Just next))) .
+                                           fst) result
           comments = propagateThreads (threadItemIdentifier Nothing) comments'
           newUrls = fromMaybe [] $ fmap snd result
       L.log $ "Found " ++ (show $ length comments) ++ " items, and "
@@ -81,3 +89,6 @@ nextUrl (x:xs) seen
   | x `elem` seen = nextUrl xs seen
   | otherwise = Just x
 
+
+getAppString :: App c i (String)
+getAppString = liftIO getProgName

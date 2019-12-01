@@ -9,6 +9,7 @@ import Control.Lens
 import Control.Applicative
 import Database.HDBC
 import Data.Maybe
+import Data.Time
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
@@ -20,9 +21,9 @@ import Network.Scrapetition.Utils
 data User = User
   { _user_user :: String
   , _user_name :: Maybe String
-  -- , _user_scrapeDate :: String
-  -- , _user_scrapeMethod :: String
   , _user_url :: Maybe String
+  , _user_scrapeDate :: Maybe UTCTime
+  , _user_scraper :: Maybe String
   } deriving (Eq, Show)
 
 makeLenses ''User
@@ -34,6 +35,12 @@ instance Item User where
   itemId c = _user_user c
   identifyItem c = userIdentifier Nothing c
 
+instance HasMeta User where
+  itemScrapeDate u = _user_scrapeDate u
+  setItemScrapeDate c date = c & user_scrapeDate .~ date
+  itemScraper u = _user_scraper u
+  setItemScraper c scraper = c & user_scraper .~ scraper
+
 
 -- | A type class. Every item, that has a user information, should
 -- implement this.
@@ -44,10 +51,10 @@ class HasUser item where
   
 -- | Create a user from an user's item. At least there must be a user
 -- ID in the comment. Otherwise Nothing is returned.
-contributor :: (HasUser i, Item i) => i -> Maybe User
+contributor :: (HasUser i, Item i, HasMeta i) => i -> Maybe User
 contributor item
   | isJust $ itemUser item
-  = Just $ User (fromMaybe "never" $ itemUser item) (itemName item) (itemUrl item)
+  = Just $ User (fromMaybe "never" $ itemUser item) (itemName item) (itemUrl item) (itemScrapeDate item) (itemScraper item)
   | otherwise = Nothing
 
 
@@ -66,7 +73,7 @@ userIdentifier domain = identifier "/user/" domain Nothing
 userInsertStmt :: String            -- ^ table name
                   -> String
 userInsertStmt tName =
-  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?)"
+  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?)"
 
 userToSql :: (User -> String) -> User -> [SqlValue]
 userToSql f c =
@@ -74,6 +81,8 @@ userToSql f c =
   , toSql $ c^.user_user
   , toSql $ c^.user_name
   , toSql $ c^.user_url
+  , toSql $ c^.user_scrapeDate
+  , toSql $ c^.user_scraper
   ]
 
 
@@ -86,4 +95,6 @@ createUserTable tName =
   "key TEXT PRIMARY KEY,\n" ++
   "user TEXT,\n" ++
   "name TEXT,\n" ++
-  "url TEXT)"
+  "url TEXT,\n" ++
+  "scrape_date TEXT,\n" ++
+  "scraper TEXT)"

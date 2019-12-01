@@ -34,7 +34,7 @@ data Vote = Vote
 makeLenses ''Vote
 
 
-votings :: (Item i, HasVoters i, HasUser i) =>
+votings :: (Item i, HasVoters i, HasUser i, HasMeta i) =>
            (i -> String -> String) -- ^ a function that generates user
                                    -- identifiert from item and a
                                    -- string giving the user.
@@ -67,7 +67,7 @@ votingUserIdentifier i u =
 --         -> i                       -- ^ the item
 --         -> [User]
 -- votingUsers uidFun item
-votingUsers :: (Item i, HasVoters i, HasUser i) =>
+votingUsers :: (Item i, HasVoters i, HasUser i, HasMeta i) =>
                i                -- ^ the item
             -> [User]
 votingUsers item
@@ -79,7 +79,7 @@ votingUsers item
     -- genUser :: (String -> String) -> Maybe String -> (String, Int) -> Vote
     -- genUser uidFun' url (who, _) = User (uidFun' who) Nothing url
     genUser :: Maybe String -> (String, Int) -> User
-    genUser url (who, _) = User who Nothing url
+    genUser url (who, _) = User who Nothing url (itemScrapeDate item) (itemScraper item)
 
 
 

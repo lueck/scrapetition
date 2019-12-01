@@ -60,14 +60,14 @@ test_commentUpVotes = do
            Just 11])
     (fmap (map _comment_upVotes) cs)
 
-test_commentUpVoters = do
+test_commentVoters = do
   s <- readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Just ("175599", 1), Just ("3245074", 1), Just ("99135", 1),
            Just ("190268", 1), Just ("99135", 1), Just ("95448", 1),
            Just ("209639", 1), Just ("305622", 1)])
-    (fmap (map (fmap head . _comment_upVoters)) cs)
+    (fmap (map (fmap head . _comment_voters)) cs)
 
 test_commentDownVotes = do
   s <- readFile testfile
@@ -76,14 +76,6 @@ test_commentDownVotes = do
     (Just [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing,
            Nothing])
     (fmap (map _comment_downVotes) cs)
-
-test_commentDownVoters = do
-  s <- readFile testfile
-  let cs = scrapeStringLike s comments
-  assertEqual
-    (Just [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing,
-           Nothing])
-    (fmap (map _comment_downVoters) cs)
 
 test_commentCommentJsLoaderUrls = do
   s <- readFile testfile

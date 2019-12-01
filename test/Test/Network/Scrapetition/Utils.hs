@@ -12,7 +12,7 @@ import Network.Scrapetition.Comment
 
 minC :: String -> Maybe String -> Maybe String -> Comment
 minC id_ parent thread =
-  Comment "Hello" Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing
+  Comment "Hello" Nothing Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing Nothing
 
 cId :: Maybe String -> Comment -> String
 cId = identifier "|" (Just "testdomain")

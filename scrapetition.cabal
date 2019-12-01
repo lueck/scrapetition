@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a70179c23a2e493567520e27fec791926c4098268442f02cb0b2cee79dbc6520
+-- hash: e5ac8c7c94156df0c9402c0cf53ad843ccd9576aeb6e818bcaf15549cb4db63e
 
 name:           scrapetition
 version:        0.1.0.0
@@ -50,6 +50,7 @@ library
     , network-uri
     , scalpel
     , split
+    , time
   default-language: Haskell2010
 
 executable scrapetition
@@ -71,6 +72,7 @@ executable scrapetition
     , scalpel
     , scrapetition
     , split
+    , time
   default-language: Haskell2010
 
 test-suite scrapetition-test
@@ -94,4 +96,5 @@ test-suite scrapetition-test
     , scalpel
     , scrapetition
     , split
+    , time
   default-language: Haskell2010

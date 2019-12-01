@@ -44,10 +44,11 @@ comment = Comment
             text $ "div" @: [hasClass "comment-meta__name"]))
   <*> ((fmap (Just . stripSpace) $ text $ "a" @: [hasClass "comment-meta__date"])
        <|> (pure Nothing))
+  <*> (pure Nothing) -- no formale datetime
   <*> (attr "id" $ "article")
   <*> ((fmap (Just . fragmentOrUrl) $ attr "href" $ "a" @: [hasClass "comment__origin"])
        <|> (pure Nothing)) -- comment__origin is parent! Verified!
-  <*> (pure Nothing) -- FIXME: is there a thread id available?
+  <*> (pure Nothing) -- No thread id available! Verified!
   <*> (fmap (Just . countOfFans) $
        attr "data-fans" $
        "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
@@ -55,8 +56,9 @@ comment = Comment
   <*> (fmap (Just . (flip zip (repeat 1)) . (splitOn ",")) $
        attr "data-fans" $
        "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
-  <*> (pure Nothing) -- down voters
   <*> (pure Nothing) -- url
+  <*> (pure Nothing) -- scrapeDate
+  <*> (pure Nothing) -- scraper
 
 
 -- | Collect URLs to further comments.
