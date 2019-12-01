@@ -52,7 +52,7 @@ comment = Comment
        attr "data-fans" $
        "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
   <*> (pure Nothing)
-  <*> (fmap (Just . (splitOn ",")) $
+  <*> (fmap (Just . (flip zip (repeat 1)) . (splitOn ",")) $
        attr "data-fans" $
        "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
   <*> (pure Nothing) -- down voters

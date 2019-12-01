@@ -8,7 +8,6 @@ module Network.Scrapetition.Comment
 import Control.Lens
 import Control.Applicative
 import Database.HDBC
-import Data.Maybe
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
@@ -29,8 +28,8 @@ data Comment = Comment
   , _comment_thread :: Maybe String
   , _comment_upVotes :: Maybe Int
   , _comment_downVotes :: Maybe Int
-  , _comment_upVoters :: Maybe [String]
-  , _comment_downVoters :: Maybe [String]
+  , _comment_upVoters :: Maybe [(String, Int)]   -- FIXME: rename to votings
+  , _comment_downVoters :: Maybe [(String, Int)] -- FIXME: delete
   , _comment_url :: Maybe String
   -- , _comment_scrapeDate :: String
   -- , _comment_scrapeMethod :: String
@@ -55,22 +54,12 @@ instance HasUser Comment where
   itemName c = _comment_name c
 
 instance HasVoters Comment where
-  upVoters c = _comment_upVoters c
-  downVoters c = _comment_upVoters c
+  votes c = _comment_upVoters c
 
 
 -- | Generate an identifier for a 'Comment'.
 commentIdentifier :: Maybe String -> Maybe String -> Comment -> String
 commentIdentifier = identifier "/comment/"
-
-
--- | Create a user from a comment. At least there must be a user ID in
--- the comment. Otherwise Nothing is returned.
-commentUser :: Comment -> Maybe User
-commentUser c
-  | isJust $ _comment_user c
-  = Just $ User (fromMaybe "never" $ _comment_user c) (_comment_name c) (_comment_url c)
-  | otherwise = Nothing
 
 
 -- * HDBC
@@ -116,14 +105,3 @@ createCommentTable tName =
   -- "up_voters TEXT,\n" ++
   -- "down_voters TEXT,\n" ++
   "url TEXT)"
-
-
--- | SQL string for creating a crossing table for votes on 'Comment'
--- items by 'User'.
-createVotingTable :: String -> String -> String -> String
-createVotingTable commentsName usersName tName =
-  "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
-  "user TEXT NOT NULL REFERENCES " ++ usersName ++ "(user),\n" ++
-  "comment TEXT NOT NULL REFERENCES " ++ commentsName ++ "(key),\n" ++
-  "vote TEXT,\n" ++
-  "CONSTRAINT unique_vote UNIQUE (user, comment, vote))\n"

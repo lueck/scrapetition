@@ -13,6 +13,7 @@ import Control.Monad.Reader
 import Network.Scrapetition.Item
 import Network.Scrapetition.Comment
 import Network.Scrapetition.User
+import Network.Scrapetition.Vote
 import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (commentsThreadsAndNext, identifierZeitDe)
@@ -69,10 +70,11 @@ evalOpts opts@(Opts url _) =
   , _env_commentIdentifier = commentIdentifier
   , _env_threadItemToSql = (commentToSql (commentIdentifier Nothing Nothing))
   , _env_insertItemStmt = (commentInsertStmt "comments")
-  , _env_userFromItem = commentUser
   , _env_userIdentifier = userIdentifier
   , _env_userToSql = (userToSql (userIdentifier Nothing))
   , _env_insertUserStmt = (userInsertStmt "users")
+  , _env_voteToSql = voteToSql
+  , _env_insertVoteStmt = (voteInsertStmt "comment_voting")
   }
 
 main = execParser opts >>= run

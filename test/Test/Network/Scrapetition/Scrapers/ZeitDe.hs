@@ -64,8 +64,9 @@ test_commentUpVoters = do
   s <- readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
-    (Just [Just "175599", Just "3245074", Just "99135", Just "190268",
-           Just "99135", Just "95448", Just "209639", Just "305622"])
+    (Just [Just ("175599", 1), Just ("3245074", 1), Just ("99135", 1),
+           Just ("190268", 1), Just ("99135", 1), Just ("95448", 1),
+           Just ("209639", 1), Just ("305622", 1)])
     (fmap (map (fmap head . _comment_upVoters)) cs)
 
 test_commentDownVotes = do

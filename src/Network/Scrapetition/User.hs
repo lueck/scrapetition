@@ -8,17 +8,13 @@ module Network.Scrapetition.User
 import Control.Lens
 import Control.Applicative
 import Database.HDBC
+import Data.Maybe
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
 
 
 -- * Data type for users.
-
-class HasUser item where
-  itemUser :: item -> Maybe String
-  itemName :: item -> Maybe String
-  
 
 -- | A record for users on social media.
 data User = User
@@ -39,11 +35,29 @@ instance Item User where
   identifyItem c = userIdentifier Nothing c
 
 
+-- | A type class. Every item, that has a user information, should
+-- implement this.
+class HasUser item where
+  itemUser :: item -> Maybe String
+  itemName :: item -> Maybe String
+
+  
+-- | Create a user from an user's item. At least there must be a user
+-- ID in the comment. Otherwise Nothing is returned.
+contributor :: (HasUser i, Item i) => i -> Maybe User
+contributor item
+  | isJust $ itemUser item
+  = Just $ User (fromMaybe "never" $ itemUser item) (itemName item) (itemUrl item)
+  | otherwise = Nothing
+
+
 -- | Generate an identifier for a 'User'.
 userIdentifier :: Maybe String  -- ^ domain name
                -> User          -- ^ the user
                -> String
 userIdentifier domain = identifier "/user/" domain Nothing
+
+
 
 
 -- * HDBC

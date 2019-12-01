@@ -9,6 +9,7 @@ import Text.HTML.Scalpel
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.User
+import Network.Scrapetition.Vote
 
 
 data Env c i = Env
@@ -17,10 +18,11 @@ data Env c i = Env
   , _env_commentIdentifier :: (Maybe String -> Maybe String -> i -> String)
   , _env_threadItemToSql :: (i -> [SqlValue])
   , _env_insertItemStmt :: String
-  , _env_userFromItem :: (i -> Maybe User)
   , _env_userIdentifier :: (Maybe String -> User -> String)
   , _env_userToSql :: (User -> [SqlValue])
   , _env_insertUserStmt :: String
+  , _env_voteToSql :: (Vote -> [SqlValue])
+  , _env_insertVoteStmt :: String
   }
 
 makeLenses ''Env

@@ -44,7 +44,7 @@ identifier sep (Just d) (Just other) item =
 -- | Like 'identifier', but with a standard Separator between domain
 -- and comment ID.
 identifier' :: (Item i) => Maybe String -> Maybe String -> i -> String
-identifier' = identifier "|"
+identifier' = identifier "/"
 
 
 -- | Add thread ID to each comment based on recursive links to
