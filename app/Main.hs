@@ -5,11 +5,14 @@ import Options.Applicative
 import Data.Monoid ((<>))
 import Network.URI
 import qualified Data.HashMap as Map
---import Control.Lens
+import Control.Lens hiding (argument)
 import qualified Database.HDBC as DB
 import Database.HDBC.Sqlite3
+import Control.Monad.Reader
 
+import Network.Scrapetition.Item
 import Network.Scrapetition.Comment
+import Network.Scrapetition.User
 import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (commentsThreadsAndNext, identifierZeitDe)
@@ -58,6 +61,20 @@ opts_ = Opts
           <> help "Output raw haskell values."))
       )
 
+-- evalOpts :: (DB.IConnection conn, Item item, ThreadItem item) => Opts -> Env conn item
+evalOpts opts@(Opts url _) =
+  Env
+  { _env_conn = Nothing::Maybe Connection
+  , _env_scraper = ZeitDe.commentsThreadsAndNext
+  , _env_commentIdentifier = commentIdentifier
+  , _env_threadItemToSql = (commentToSql (commentIdentifier Nothing Nothing))
+  , _env_insertItemStmt = (commentInsertStmt "comments")
+  , _env_userFromItem = commentUser
+  , _env_userIdentifier = userIdentifier
+  , _env_userToSql = (userToSql (userIdentifier Nothing))
+  , _env_insertUserStmt = (userInsertStmt "users")
+  }
+
 main = execParser opts >>= run
   where opts = info (helper <*> opts_)
           (fullDesc
@@ -68,25 +85,16 @@ main = execParser opts >>= run
 -- | Evaluate commandline options and run the scraper.
 run :: Opts -> IO ()
 run opts@(Opts url (SQLite fname)) = do
+  let env = evalOpts opts
   conn <- connectSqlite3 fname
   prepareSql opts conn
-  cs <- runScraper (Env
-                    (Just conn)
-                    commentIdentifier
-                    (commentToSql (commentIdentifier Nothing Nothing))
-                    (commentInsertStmt "comments")
-                   ) ZeitDe.commentsThreadsAndNext [url] []
+  cs <- runReaderT (runScraper [url] []) (env & env_conn .~ (Just (conn::Connection)))
   report cs
   DB.disconnect conn
 run (Opts url (Postgres _)) = do
   print "Postgres output is not yet implemented"
 run opts@(Opts url Raw) = do
-  cs <- runScraper (Env
-                    (Nothing::Maybe Connection)
-                    commentIdentifier
-                    (commentToSql (commentIdentifier Nothing Nothing))
-                    (commentInsertStmt "comments")
-                   ) ZeitDe.commentsThreadsAndNext [url] []
+  cs <- runReaderT (runScraper [url] []) (evalOpts opts)
   print cs
   report cs
 

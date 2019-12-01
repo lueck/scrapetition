@@ -31,6 +31,7 @@ library:
   - network-uri
   - hashmap
   - HDBC
+  - mtl
                  
 executables:
   scrapetition:
@@ -48,6 +49,7 @@ executables:
     - network-uri
     - hashmap
     - HDBC
+    - mtl
     - HDBC-sqlite3
     - optparse-applicative
     
@@ -69,3 +71,4 @@ tests:
     - network-uri
     - hashmap
     - HDBC
+    - mtl

@@ -8,9 +8,12 @@ module Network.Scrapetition.Comment
 import Control.Lens
 import Control.Applicative
 import Database.HDBC
+import Data.Maybe
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
+import Network.Scrapetition.User
+import Network.Scrapetition.Vote
 
 
 -- * Data type for comments.
@@ -47,10 +50,28 @@ instance ThreadItem Comment where
   itemThread c = _comment_thread c
   setItemThread c t = c & comment_thread .~ t
 
+instance HasUser Comment where
+  itemUser c = _comment_user c
+  itemName c = _comment_name c
+
+instance HasVoters Comment where
+  upVoters c = _comment_upVoters c
+  downVoters c = _comment_upVoters c
+
 
 -- | Generate an identifier for a 'Comment'.
 commentIdentifier :: Maybe String -> Maybe String -> Comment -> String
-commentIdentifier = identifier "|comment|"
+commentIdentifier = identifier "/comment/"
+
+
+-- | Create a user from a comment. At least there must be a user ID in
+-- the comment. Otherwise Nothing is returned.
+commentUser :: Comment -> Maybe User
+commentUser c
+  | isJust $ _comment_user c
+  = Just $ User (fromMaybe "never" $ _comment_user c) (_comment_name c) (_comment_url c)
+  | otherwise = Nothing
+
 
 -- * HDBC
 
@@ -95,15 +116,6 @@ createCommentTable tName =
   -- "up_voters TEXT,\n" ++
   -- "down_voters TEXT,\n" ++
   "url TEXT)"
-
-
--- | SQL string for creating a table for 'User'.
-createUserTable :: String -> String
-createUserTable tName =
-  "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
-  "key TEXT PRIMARY KEY,\n" ++
-  "user TEXT,\n" ++
-  "name TEXT)\n"
 
 
 -- | SQL string for creating a crossing table for votes on 'Comment'
