@@ -7,8 +7,12 @@ import Network.URI
 import qualified Data.HashMap as Map
 import Control.Lens hiding (argument)
 import qualified Database.HDBC as DB
-import Database.HDBC.Sqlite3
 import Control.Monad.Reader
+import System.IO
+import Data.Maybe
+
+import qualified Database.HDBC.Sqlite3 as Sqlite3
+import qualified Database.HDBC.PostgreSQL as PostgreSQL
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Comment
@@ -16,17 +20,24 @@ import Network.Scrapetition.User
 import Network.Scrapetition.Vote
 import Network.Scrapetition.Env
 import Network.Scrapetition.App
+import Network.Scrapetition.Utils
+
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (commentsThreadsAndNext, identifierZeitDe)
-import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (comments, comments')
 
-
---url = "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache/komplettansicht"
 
 
 data Opts = Opts
   { url :: String
+  , scraper :: ScraperSelector
   , output :: OutputMethod
+  , logfile :: Maybe String
+  , itemsTable :: String
+  , usersTable :: String
+  , votingsTable :: String
   }
+
+data ScraperSelector
+  = ZeitDeComments
 
 data OutputMethod
   = SQLite
@@ -36,16 +47,19 @@ data OutputMethod
   { connection :: String
   }
   | Raw
-  
+
 
 opts_ :: Parser Opts
 opts_ = Opts
   <$> argument str (metavar "URL"
                     <> help "An URL to start with.")
+  <*> (flag ZeitDeComments ZeitDeComments
+       (long "wwwZeitDe-comments"
+        <> help "Scraper for discussion on articles at http://www.zeit.de. This is the default scraper -- and the only one so far."))
   <*> ((SQLite <$>
         (strOption (short 's'
                     <> long "sqlite"
-                    <> help "Output to SQLite3 database. (Default)"
+                    <> help "Output to SQLite3 database. This is the default output method."
                     <> value "data.db"
                     <> showDefault
                     <> metavar "DATABASE")))
@@ -53,29 +67,64 @@ opts_ = Opts
         (Postgres <$>
          (strOption (short 'p'
                      <> long "postgresql"
-                     <> help "Output to PostgreSQL database."
+                     <> help "Output to PostgreSQL database given by the connection string. See  http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT for info about the connection string."
                      <> metavar "CONNECTION")))
         <|>
         (flag' Raw
          (short 'r'
           <> long "raw"
-          <> help "Output raw haskell values."))
+          <> help "Output raw data."))
       )
+  <*> (optional $ strOption (long "logfile"
+                             <> help "Specify a file for logging messages. By default, messages are logged to stderr."
+                             <> metavar "LOGFILE"))
+  <*> strOption (long "items-table"
+                 <> help "Table name for scraped items."
+                 <> value "comments"
+                 <> showDefault
+                 <> metavar "ITEMTABLE")
+  <*> strOption (long "users-table"
+                 <> help "Table name for scraped users."
+                 <> value "users"
+                 <> showDefault
+                 <> metavar "USERTABLE")
+  <*> strOption (long "voting-table"
+                 <> help "Table name for voting by users about items."
+                 <> value "comment_voting"
+                 <> showDefault
+                 <> metavar "VOTINGTABLE")
 
--- evalOpts :: (DB.IConnection conn, Item item, ThreadItem item) => Opts -> Env conn item
-evalOpts opts@(Opts url _) =
-  Env
-  { _env_conn = Nothing::Maybe Connection
-  , _env_scraper = ZeitDe.commentsThreadsAndNext
-  , _env_commentIdentifier = commentIdentifier
-  , _env_threadItemToSql = (commentToSql (commentIdentifier Nothing Nothing))
-  , _env_insertItemStmt = (commentInsertStmt "comments")
-  , _env_userIdentifier = userIdentifier
-  , _env_userToSql = (userToSql (userIdentifier Nothing))
-  , _env_insertUserStmt = (userInsertStmt "users")
-  , _env_voteToSql = voteToSql
-  , _env_insertVoteStmt = (voteInsertStmt "comment_voting")
-  }
+
+scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
+
+-- evalOpts :: Opts -> Env c i
+evalOpts opts@(Opts url scrapper _ logfile itemTab userTab votingTab) = do
+  logHandle <- getLogger logfile
+  return $ Env
+    { _env_conn = Nothing::Maybe Sqlite3.Connection
+    , _env_scraper = scraperRegistry scrapper
+    , _env_commentIdentifier = commentIdentifier
+    , _env_threadItemToSql = (commentToSql (commentIdentifier Nothing Nothing))
+    , _env_insertItemStmt = (commentInsertStmt itemTab)
+    , _env_userIdentifier = userIdentifier
+    , _env_userToSql = (userToSql (userIdentifier Nothing))
+    , _env_insertUserStmt = (userInsertStmt userTab)
+    , _env_voteToSql = voteToSql
+    , _env_insertVoteStmt = (voteInsertStmt votingTab)
+    , _env_logger = logHandle
+    }
+
+getLogger :: Maybe String -> IO Handle
+getLogger Nothing = do { return stderr }
+getLogger (Just fname) = openFile fname WriteMode
+
+
+closeLogger :: Env c i -> IO ()
+closeLogger env = do
+  let logger = _env_logger env
+  if  logger == stderr then return() else hClose logger
+  return ()
+
 
 main = execParser opts >>= run
   where opts = info (helper <*> opts_)
@@ -86,19 +135,28 @@ main = execParser opts >>= run
 
 -- | Evaluate commandline options and run the scraper.
 run :: Opts -> IO ()
-run opts@(Opts url (SQLite fname)) = do
-  let env = evalOpts opts
-  conn <- connectSqlite3 fname
+run opts@(Opts url _ (SQLite fname) _ _ _ _) = do
+  env <- evalOpts opts
+  conn <- Sqlite3.connectSqlite3 fname
   prepareSql opts conn
-  cs <- runReaderT (runScraper [url] []) (env & env_conn .~ (Just (conn::Connection)))
-  report cs
+  cs <- runReaderT (runScraper [url] []) (env & env_conn .~ (Just (conn::Sqlite3.Connection)))
+  report env cs
   DB.disconnect conn
-run (Opts url (Postgres _)) = do
-  print "Postgres output is not yet implemented"
-run opts@(Opts url Raw) = do
-  cs <- runReaderT (runScraper [url] []) (evalOpts opts)
+  closeLogger env
+run opts@(Opts url _ (Postgres connection) _ _ _ _) = do
+  env <- evalOpts opts
+  conn <- PostgreSQL.connectPostgreSQL connection
+  prepareSql opts conn
+  cs <- runReaderT (runScraper [url] []) (env & env_conn .~ (Just (conn::PostgreSQL.Connection)))
+  report env cs
+  DB.disconnect conn
+  closeLogger env
+run opts@(Opts url _ Raw _ _ _ _) = do
+  env <- evalOpts opts
+  cs <- runReaderT (runScraper [url] []) env
   print cs
-  report cs
+  report env cs
+  closeLogger env
 
 prepareSql :: DB.IConnection conn => Opts -> conn -> IO ()
 prepareSql opts conn = do
@@ -107,8 +165,8 @@ prepareSql opts conn = do
   DB.run conn (createVotingTable "comments" "users" "comment_voting") []
   DB.commit conn
 
-report :: [Comment] -> IO ()
-report cs = do
-  print $ "Scraped " ++ (show $ length cs) ++ " comments"
-  let cs' = Map.fromList(zip (map (ZeitDe.identifierZeitDe Nothing) cs) cs)
-  print $ (show $ length $ Map.keys cs') ++ " are different."
+report :: (Item i) => Env c i -> [i] -> IO ()
+report env cs = do
+  hPutStrLn (_env_logger env) $ "Scraped " ++ (show $ length cs) ++ " comments"
+  let cs' = Map.fromList(zip (map (identifier "/comment/" Nothing Nothing) cs) cs)
+  hPutStrLn (_env_logger env) $ (show $ length $ Map.keys cs') ++ " are different."

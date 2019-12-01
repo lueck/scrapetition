@@ -6,6 +6,7 @@ import Control.Lens
 import Control.Lens.TH
 import Database.HDBC
 import Text.HTML.Scalpel
+import System.IO
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.User
@@ -23,6 +24,7 @@ data Env c i = Env
   , _env_insertUserStmt :: String
   , _env_voteToSql :: (Vote -> [SqlValue])
   , _env_insertVoteStmt :: String
+  , _env_logger :: Handle
   }
 
 makeLenses ''Env
