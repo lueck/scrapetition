@@ -35,7 +35,9 @@ library:
   - mtl
   - time
   - regex-tdfa
-  - HTTP
+  - http-conduit
+  - bytestring
+  - text
                  
 executables:
   scrapetition:
@@ -56,7 +58,8 @@ executables:
     - mtl
     - time
     - regex-tdfa
-    - HTTP
+    - http-conduit
+    - text
     - HDBC-sqlite3
     - HDBC-postgresql
     - optparse-applicative
@@ -81,5 +84,6 @@ tests:
     - time
     - HDBC
     - mtl
-    - HTTP
+    - http-conduit
+    - text
     - regex-tdfa

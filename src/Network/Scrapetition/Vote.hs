@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
 module Network.Scrapetition.Vote
   where
 
@@ -11,6 +11,7 @@ import Database.HDBC
 import Data.Maybe
 import Control.Monad
 import Data.Time
+import qualified Data.Text as T
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
@@ -22,12 +23,12 @@ import Network.Scrapetition.Sql
 
 -- | A record for votes on social media.
 data Vote = Vote
-  { _vote_user :: String
-  , _vote_item :: String
+  { _vote_user :: T.Text
+  , _vote_item :: T.Text
   , _vote_value :: Int
-  , _vote_url :: Maybe String
+  , _vote_url :: Maybe T.Text
   , _vote_scrapeDate :: Maybe UTCTime
-  , _vote_scraper :: Maybe String
+  , _vote_scraper :: Maybe T.Text
   } deriving (Eq, Show)
 
 makeLenses ''Vote
@@ -53,7 +54,7 @@ voteInsertStmt tName =
 
 voteToSql :: Vote -> [SqlValue]
 voteToSql (Vote usr itm val url scrDate scr) =
-  [ toSql $ fromMaybe "UNKOWN" $ domain $ url
+  [ toSql $ fromMaybe "UNKOWN" $ domainT url
   , toSql $ usr
   , toSql $ itm
   , toSql $ val

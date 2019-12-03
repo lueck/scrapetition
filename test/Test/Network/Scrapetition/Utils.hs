@@ -5,19 +5,21 @@ module Test.Network.Scrapetition.Utils where
 import Test.Framework
 import qualified Data.HashMap as Map
 import Control.Lens
+import qualified Data.Text as T
+import Data.List
 
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Comment
 
 
-minC :: String -> Maybe String -> Maybe String -> Comment
+minC :: T.Text -> Maybe T.Text -> Maybe T.Text -> Comment
 minC id_ parent thread =
   Comment "Hello" Nothing Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing
 
-cId :: Maybe String -> Comment -> String
+cId :: Maybe T.Text -> Comment -> T.Text
 cId = identifier "|" (Just "testdomain")
 
-csToMap :: [Comment] -> Map.Map String Comment
+csToMap :: [Comment] -> Map.Map T.Text Comment
 csToMap cs = Map.fromList $ zip (map (cId Nothing) cs) cs
 
 
@@ -30,7 +32,7 @@ test_propagateThreadsAllThreadStarters = do
            , minC "2" Nothing $ Just "2"
            , minC "3" Nothing $ Just "3"
            ]
-  assertEqual sc (propagateThreads cId cs)
+  assertEqual sc $ sortOn _comment_id (propagateThreads cId cs)
 
 
 test_propagateThreads = do
@@ -93,7 +95,7 @@ test_propagateThreadsIncomplete = do
            , minC "2" Nothing $ Just "2"
            , minC "3" (Just "4") Nothing
            ]
-  assertEqual sc (propagateThreads cId cs)
+  assertEqual sc $ sortOn _comment_id (propagateThreads cId cs)
 
 
 test_propagateThreadsIncomplete2 = do
@@ -105,7 +107,7 @@ test_propagateThreadsIncomplete2 = do
            , minC "2" (Just "4") Nothing
            , minC "3" (Just "4") Nothing
            ]
-  assertEqual sc (propagateThreads cId cs)
+  assertEqual sc $ sortOn _comment_id (propagateThreads cId cs)
 
 
 test_propagateThreadsIncomplete3 = do

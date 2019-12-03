@@ -5,6 +5,7 @@ module Test.Network.Scrapetition.Scrapers.ZeitDe where
 import Test.Framework
 
 import Text.HTML.Scalpel (scrapeStringLike)
+import qualified Data.Text.IO as T
 
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Scrapers.ZeitDe
@@ -15,12 +16,12 @@ testurl = "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexuali
 
 
 test_commentCount = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual (Just 8) (fmap length cs)
 
 test_commentName = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Just "regelus", Just "FnordPrefect", Just "betreb",
@@ -29,7 +30,7 @@ test_commentName = do
     (fmap (map _comment_name) cs)
 
 test_commentUser = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Just "3096219", Just "5786217", Just "2831850", Nothing,
@@ -37,7 +38,7 @@ test_commentUser = do
     (fmap (map _comment_user) cs)
 
 test_commentId = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just ["cid-50377101", "cid-50381108", "cid-50377129", "cid-50377209",
@@ -45,7 +46,7 @@ test_commentId = do
     (fmap (map _comment_id) cs)
 
 test_commentParent = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Nothing, Just "cid-50377101", Nothing, Just "cid-50377129",
@@ -53,7 +54,7 @@ test_commentParent = do
     (fmap (map _comment_parent) cs)
 
 test_commentUpVotes = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Just 127, Just 1, Just 166, Just 9, Just 23, Just 260, Just 52,
@@ -61,7 +62,7 @@ test_commentUpVotes = do
     (fmap (map _comment_upVotes) cs)
 
 test_commentDownVotes = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing,
@@ -69,42 +70,42 @@ test_commentDownVotes = do
     (fmap (map _comment_downVotes) cs)
 
 test_commentCommentJsLoaderUrls = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let urls = scrapeStringLike s commentJsLoaderUrls
   assertEqual
     (Just 3)
     (fmap length urls)
 
 test_commentSectionUrls = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let urls = scrapeStringLike s commentSectionUrls
   assertEqual
     (Just 5)
     (fmap length urls)
 
 test_commentNextButtonUrl = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let urls = scrapeStringLike s commentNextButtonUrl
   assertEqual
     (Just 1)
     (fmap length urls)
 
 test_threadsAndNextUrl = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let urls = scrapeStringLike s threadsAndNextUrl
   assertEqual
     (Just 4)
     (fmap length urls)
 
 test_collectCommentUrls = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let urls = scrapeStringLike s collectCommentUrls
   assertEqual
     (Just 9)
     (fmap length urls)
 
 test_collectCommentUrlsUrls = do
-  s <- readFile testfile
+  s <- T.readFile testfile
   let urls = scrapeStringLike s collectCommentUrls
   assertEqual
     (Just ["https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377209#cid-50377129",

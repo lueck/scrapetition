@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
 module Network.Scrapetition.User
   where
 
@@ -10,6 +10,7 @@ import Control.Applicative
 import Database.HDBC
 import Data.Maybe
 import Data.Time
+import qualified Data.Text as T
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
@@ -20,11 +21,11 @@ import Network.Scrapetition.Sql
 
 -- | A record for users on social media.
 data User = User
-  { _user_user :: String
-  , _user_name :: Maybe String
-  , _user_url :: Maybe String
+  { _user_user :: T.Text
+  , _user_name :: Maybe T.Text
+  , _user_url :: Maybe T.Text
   , _user_scrapeDate :: Maybe UTCTime
-  , _user_scraper :: Maybe String
+  , _user_scraper :: Maybe T.Text
   } deriving (Eq, Show)
 
 makeLenses ''User
@@ -50,8 +51,8 @@ instance ThreadItem User where
 -- | A type class. Every item, that has a user information, should
 -- implement this.
 class HasUser item where
-  itemUser :: item -> Maybe String
-  itemName :: item -> Maybe String
+  itemUser :: item -> Maybe T.Text
+  itemName :: item -> Maybe T.Text
 
   
 -- | Create a user from an user's item. At least there must be a user
@@ -64,9 +65,9 @@ contributor item
 
 
 -- | Generate an identifier for a 'User'.
-userIdentifier :: Maybe String  -- ^ domain name
+userIdentifier :: Maybe T.Text  -- ^ domain name
                -> User          -- ^ the user
-               -> String
+               -> T.Text
 userIdentifier domain = identifier "/user/" domain Nothing
 
 
@@ -83,7 +84,7 @@ userInsertStmt tName =
 userToSql :: User -> [SqlValue]
 userToSql (User usr name url scrD scr) =
   [ toSql usr
-  , toSql $ fromMaybe "UNKNOWN" $ domain url
+  , toSql $ fromMaybe "UNKNOWN" $ domainT url
   , toSql name
   , toSql url
   , toSql scrD

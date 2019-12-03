@@ -1,5 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Network.Scrapetition.Utils
   ( domain
+  , domainT
   , identifier
   , identifier'
   , propagateThreads
@@ -13,6 +15,8 @@ import Network.URI
 import Control.Monad
 import Control.Lens
 import qualified Data.HashMap as Map
+import qualified Data.Text as T
+import Data.Monoid
 
 import Network.Scrapetition.Item
 
@@ -22,28 +26,31 @@ domain :: Maybe String -> Maybe String
 domain url =
   join $ fmap (fmap uriRegName . join . fmap uriAuthority . parseURI) url
 
+domainT :: Maybe T.Text -> Maybe T.Text
+domainT = (fmap T.pack) . domain . (fmap T.unpack)
+
 -- | Generate an ID for a scraped item. It is reasonable to choose
 -- some combination of the domain name and the item's ID. The type of
 -- the item may be encoded in the separator, if it's not present in
 -- the item's ID.
 identifier :: (Item i, HasMeta i) =>
-              String            -- ^ Separator between domain and comment ID
-           -> Maybe String      -- ^ A domain maybe provided and if Just overrides.
-           -> Maybe String      -- ^ An other comment ID may be provided.
+              T.Text            -- ^ Separator between domain and comment ID
+           -> Maybe T.Text      -- ^ A domain maybe provided and if Just overrides.
+           -> Maybe T.Text      -- ^ An other comment ID may be provided.
            -> i                 -- ^ The comment.
-           -> String
+           -> T.Text
 identifier sep Nothing Nothing item =
-  (fromMaybe "unkown" $ domain $ (itemUrl item)) ++ sep ++ (itemId item)
+  (fromMaybe "unkown" $ fmap T.pack $ domain $ fmap T.unpack $ (itemUrl item)) <> sep <> (itemId item)
 identifier sep (Just d) Nothing item =
-  d ++ sep ++ (itemId item)
+  d <> sep <> (itemId item)
 identifier sep Nothing (Just other) item =
-  (fromMaybe "unkown" $ domain $ (itemUrl item)) ++ sep ++ other
+  (fromMaybe "unkown" $ fmap T.pack $ domain $ fmap T.unpack $ (itemUrl item)) <> sep <> other
 identifier sep (Just d) (Just other) item =
-  d ++ sep ++ other
+  d <> sep <> other
 
 -- | Like 'identifier', but with a standard Separator between domain
 -- and comment ID.
-identifier' :: (Item i, HasMeta i) => Maybe String -> Maybe String -> i -> String
+identifier' :: (Item i, HasMeta i) => Maybe T.Text -> Maybe T.Text -> i -> T.Text
 identifier' = identifier "/"
 
 
@@ -51,7 +58,7 @@ identifier' = identifier "/"
 -- parents. Comments without a parent are asumed to be thread starters
 -- and get their ID as thread ID. Work is done in 'propageThreads\'\''.
 propagateThreads :: (Item i, ThreadItem i) =>
-                    (Maybe String -> i -> String) -- ^ function for making a unique key
+                    (Maybe T.Text -> i -> T.Text) -- ^ function for making a unique key
                  -> [i]                           -- ^ list of comments to work on
                  -> [i]
 propagateThreads f cs =
@@ -60,9 +67,9 @@ propagateThreads f cs =
 
 -- | Same as 'propagateThreads'.
 propagateThreads' :: (Item i, ThreadItem i) =>
-                     (Maybe String -> i -> String)
-                  -> Map.Map String i
-                  -> Map.Map String i
+                     (Maybe T.Text -> i -> T.Text)
+                  -> Map.Map T.Text i
+                  -> Map.Map T.Text i
 propagateThreads' = propagateThreads'' (-1)
 
 -- | Same as 'propagateThreads'. Passing the count of comments already
@@ -73,9 +80,9 @@ propagateThreads' = propagateThreads'' (-1)
 -- crash without checking the progress this way. See tests.
 propagateThreads'' :: (Item i, ThreadItem i) =>
                       Int       -- ^ Call with (-1)!
-                   -> (Maybe String -> i -> String)
-                   -> Map.Map String i
-                   -> Map.Map String i
+                   -> (Maybe T.Text -> i -> T.Text)
+                   -> Map.Map T.Text i
+                   -> Map.Map T.Text i
 propagateThreads'' lastCnt f cs
   | cntDone == lastCnt
   -- No progress since last recursion step. Stop and return map.

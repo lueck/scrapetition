@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
 module Network.Scrapetition.Comment
   where
 
@@ -10,6 +10,7 @@ import Control.Applicative
 import Database.HDBC
 import Data.Time
 import Data.Maybe
+import qualified Data.Text as T
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
@@ -21,19 +22,19 @@ import Network.Scrapetition.User
 
 -- | A record for comments on social media.
 data Comment = Comment
-  { _comment_text :: String
-  , _comment_user :: Maybe String
-  , _comment_name :: Maybe String
-  , _comment_dateInformal :: Maybe String -- ^ informal date information like "3 weeks ago"
+  { _comment_text :: T.Text
+  , _comment_user :: Maybe T.Text
+  , _comment_name :: Maybe T.Text
+  , _comment_dateInformal :: Maybe T.Text -- ^ informal date information like "3 weeks ago"
   , _comment_date :: Maybe UTCTime
-  , _comment_id :: String
-  , _comment_parent :: Maybe String
-  , _comment_thread :: Maybe String
+  , _comment_id :: T.Text
+  , _comment_parent :: Maybe T.Text
+  , _comment_thread :: Maybe T.Text
   , _comment_upVotes :: Maybe Int
   , _comment_downVotes :: Maybe Int
-  , _comment_url :: Maybe String
+  , _comment_url :: Maybe T.Text
   , _comment_scrapeDate :: Maybe UTCTime
-  , _comment_scraper :: Maybe String
+  , _comment_scraper :: Maybe T.Text
   } deriving (Eq, Show)
 
 makeLenses ''Comment
@@ -61,7 +62,7 @@ instance HasUser Comment where
 
 
 -- | Generate an identifier for a 'Comment'.
-commentIdentifier :: Maybe String -> Maybe String -> Comment -> String
+commentIdentifier :: Maybe T.Text -> Maybe T.Text -> Comment -> T.Text
 commentIdentifier = identifier "/comment/"
 
 
@@ -76,7 +77,7 @@ commentInsertStmt tName =
 commentToSql :: Comment -> [SqlValue]
 commentToSql (Comment txt usr name dateInf date id_ parent thread upVotes downVotes url scrD scr) =
   [ toSql id_
-  , toSql $ fromMaybe "UNKOWN" $ domain url
+  , toSql $ fromMaybe "UNKOWN" $ domainT url
   , toSql txt
   , toSql usr
   , toSql name

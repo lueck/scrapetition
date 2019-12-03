@@ -1,11 +1,12 @@
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, OverloadedStrings #-}
 module Network.Scrapetition.Item
   where
 
 import Data.Time
 import Database.HDBC
+import qualified Data.Text as T
 
-type Identifier = String
+type Identifier = T.Text
 
 -- | A scraped item.
 class Item i where
@@ -13,15 +14,15 @@ class Item i where
 
 -- | Meta data of a scraped item.
 class HasMeta i where
-  itemUrl :: i -> Maybe String
-  setItemUrl :: i -> Maybe String -> i
+  itemUrl :: i -> Maybe T.Text
+  setItemUrl :: i -> Maybe T.Text -> i
   itemScrapeDate :: i -> Maybe UTCTime
   setItemScrapeDate :: i ->  Maybe UTCTime -> i
-  itemScraper :: i -> Maybe String
-  setItemScraper :: i -> Maybe String -> i
+  itemScraper :: i -> Maybe T.Text
+  setItemScraper :: i -> Maybe T.Text -> i
 
 -- | Add meta data to an instance of 'HasMeta'.
-addMeta :: HasMeta i => String -> UTCTime -> String -> i -> i
+addMeta :: HasMeta i => T.Text -> UTCTime -> T.Text -> i -> i
 addMeta appString now u =
   (flip setItemScraper (Just appString)) .
   (flip setItemScrapeDate (Just now)) .
