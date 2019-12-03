@@ -20,8 +20,8 @@ import Network.Scrapetition.Env
 import Network.Scrapetition.Item
 
 
--- | A blower config for scraping www.zeit.de
-zeitDeCommentBlower :: Blower Comment
+-- | A blower for scraping comments from www.zeit.de
+-- zeitDeCommentBlower :: Blower Comment
 zeitDeCommentBlower = Blower
   { _blwr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _blwr_scraper = comments
@@ -31,6 +31,18 @@ zeitDeCommentBlower = Blower
   , _blwr_toSql = commentToSql
   }
 
+-- | A blower for scraping authors of comments from www.zeit.de
+-- zeitDeUserBlower :: Blower User
+zeitDeUserBlower = Blower
+  { _blwr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _blwr_scraper = users
+  , _blwr_urlScraper = collectCommentUrls
+  , _blwr_insertItemStmt = userInsertStmt
+  , _blwr_tableName = "users"
+  , _blwr_toSql = userToSql
+  }
+
+-- zeitDeBlowers = [zeitDeCommentBlower, zeitDeUserBlower]
 
 -- | Generate a unique identifier for a comment. For zeit.de this is
 -- the domain name concatenated with an comment ID.
