@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f4033e54f7837ad143607aea8f9dd982e3ba8cfef680400fe239c4fa465a9872
+-- hash: 011614208c63b2397f43bf815282d611915457c1cb8e3e5875a0cb6a71a3ec32
 
 name:           scrapetition
 version:        0.1.0.0
@@ -34,6 +34,7 @@ library
       Network.Scrapetition.Item
       Network.Scrapetition.Logging
       Network.Scrapetition.Scrapers.ZeitDe
+      Network.Scrapetition.Sql
       Network.Scrapetition.User
       Network.Scrapetition.Utils
       Network.Scrapetition.Vote
@@ -43,6 +44,7 @@ library
       src
   build-depends:
       HDBC
+    , HTTP
     , base >=4.7 && <5
     , hashmap
     , lens
@@ -64,6 +66,7 @@ executable scrapetition
       HDBC
     , HDBC-postgresql
     , HDBC-sqlite3
+    , HTTP
     , base >=4.7 && <5
     , hashmap
     , lens
@@ -89,6 +92,7 @@ test-suite scrapetition-test
   build-depends:
       HDBC
     , HTF
+    , HTTP
     , base >=4.7 && <5
     , hashmap
     , lens

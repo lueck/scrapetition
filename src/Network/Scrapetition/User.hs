@@ -13,6 +13,7 @@ import Data.Time
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
+import Network.Scrapetition.Sql
 
 
 -- * Data type for users.
@@ -30,12 +31,11 @@ makeLenses ''User
 
 
 instance Item User where
-  itemUrl c = _user_url c
-  setItemUrl c url = c & user_url .~ url
   itemId c = _user_user c
-  identifyItem c = userIdentifier Nothing c
 
 instance HasMeta User where
+  itemUrl c = _user_url c
+  setItemUrl c url = c & user_url .~ url
   itemScrapeDate u = _user_scrapeDate u
   setItemScrapeDate c date = c & user_scrapeDate .~ date
   itemScraper u = _user_scraper u
@@ -75,15 +75,18 @@ userInsertStmt :: String            -- ^ table name
 userInsertStmt tName =
   "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?)"
 
-userToSql :: (User -> String) -> User -> [SqlValue]
-userToSql f c =
-  [ toSql $ f c
-  , toSql $ c^.user_user
-  , toSql $ c^.user_name
-  , toSql $ c^.user_url
-  , toSql $ c^.user_scrapeDate
-  , toSql $ c^.user_scraper
+userToSql :: User -> [SqlValue]
+userToSql (User usr name url scrD scr) =
+  [ toSql usr
+  , toSql $ fromMaybe "UNKNOWN" $ domain url
+  , toSql name
+  , toSql url
+  , toSql scrD
+  , toSql scr
   ]
+
+instance ToSqlValues User where
+  toSqlValues = userToSql
 
 
 -- * SQL Strings 
@@ -92,9 +95,10 @@ userToSql f c =
 createUserTable :: String -> String
 createUserTable tName =
   "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
-  "key TEXT PRIMARY KEY,\n" ++
   "user TEXT,\n" ++
+  "domain TEXT,\n" ++
   "name TEXT,\n" ++
   "url TEXT,\n" ++
   "scrape_date TEXT,\n" ++
-  "scraper TEXT)"
+  "scraper TEXT,\n" ++
+  "PRIMARY KEY (user, domain))\n"

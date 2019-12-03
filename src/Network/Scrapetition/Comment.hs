@@ -2,18 +2,19 @@
 module Network.Scrapetition.Comment
   where
 
--- | This modules defines a record for scraping discussion comments
+-- | This module defines a record for scraping discussion comments
 -- from social media.
 
 import Control.Lens
 import Control.Applicative
 import Database.HDBC
 import Data.Time
+import Data.Maybe
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
+import Network.Scrapetition.Sql
 import Network.Scrapetition.User
-import Network.Scrapetition.Vote
 
 
 -- * Data type for comments.
@@ -30,7 +31,6 @@ data Comment = Comment
   , _comment_thread :: Maybe String
   , _comment_upVotes :: Maybe Int
   , _comment_downVotes :: Maybe Int
-  , _comment_voters :: Maybe [(String, Int)]
   , _comment_url :: Maybe String
   , _comment_scrapeDate :: Maybe UTCTime
   , _comment_scraper :: Maybe String
@@ -40,12 +40,11 @@ makeLenses ''Comment
 
 
 instance Item Comment where
-  itemUrl c = _comment_url c
-  setItemUrl c url = c & comment_url .~ url
   itemId c = _comment_id c
-  identifyItem c = commentIdentifier Nothing Nothing c
 
 instance HasMeta Comment where
+  itemUrl c = _comment_url c
+  setItemUrl c url = c & comment_url .~ url
   itemScrapeDate c = _comment_scrapeDate c
   setItemScrapeDate c date = c & comment_scrapeDate .~ date
   itemScraper c = _comment_scraper c
@@ -59,9 +58,6 @@ instance ThreadItem Comment where
 instance HasUser Comment where
   itemUser c = _comment_user c
   itemName c = _comment_name c
-
-instance HasVoters Comment where
-  votes c = _comment_voters c
 
 
 -- | Generate an identifier for a 'Comment'.
@@ -77,23 +73,26 @@ commentInsertStmt :: String            -- ^ table name
 commentInsertStmt tName =
   "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
-commentToSql :: (Comment -> String) -> Comment -> [SqlValue]
-commentToSql f c =
-  [ toSql $ f c
-  , toSql $ c^.comment_text
-  , toSql $ c^.comment_user
-  , toSql $ c^.comment_name
-  , toSql $ c^.comment_dateInformal
-  , toSql $ c^.comment_date
-  , toSql $ c^.comment_id
-  , toSql $ c^.comment_parent
-  , toSql $ c^.comment_thread
-  , toSql $ c^.comment_upVotes
-  , toSql $ c^.comment_downVotes
-  , toSql $ c^.comment_url
-  , toSql $ c^.comment_scrapeDate
-  , toSql $ c^.comment_scraper
+commentToSql :: Comment -> [SqlValue]
+commentToSql (Comment id_ txt usr name dateInf date parent thread upVotes downVotes url scrD scr) =
+  [ toSql id_
+  , toSql $ fromMaybe "UNKOWN" $ domain url
+  , toSql txt
+  , toSql usr
+  , toSql name
+  , toSql dateInf
+  , toSql date
+  , toSql parent
+  , toSql thread
+  , toSql upVotes
+  , toSql downVotes
+  , toSql url
+  , toSql scrD
+  , toSql scr
   ]
+
+instance ToSqlValues Comment where
+  toSqlValues = commentToSql
 
 
 -- * SQL Strings 
@@ -102,17 +101,18 @@ commentToSql f c =
 createCommentTable :: String -> String
 createCommentTable tName =
   "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
-  "key TEXT PRIMARY KEY,\n" ++
+  "id TEXT NOT NULL,\n" ++
+  "domain TEXT NOT NULL,\n" ++
   "text TEXT NOT NULL,\n" ++
   "user TEXT,\n" ++
   "name TEXT,\n" ++
   "date_informal TEXT,\n" ++
   "date TEXT,\n" ++
-  "id TEXT NOT NULL,\n" ++
   "parent TEXT,\n" ++
   "thread TEXT,\n" ++
   "up_votes TEXT,\n" ++
   "down_votes TEXT,\n" ++
   "url TEXT,\n" ++
   "scrape_date TEXT,\n" ++
-  "scraper TEXT)"
+  "scraper TEXT,\n" ++
+  "PRIMARY KEY (id, domain))\n"

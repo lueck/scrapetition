@@ -26,7 +26,7 @@ domain url =
 -- some combination of the domain name and the item's ID. The type of
 -- the item may be encoded in the separator, if it's not present in
 -- the item's ID.
-identifier :: (Item i) =>
+identifier :: (Item i, HasMeta i) =>
               String            -- ^ Separator between domain and comment ID
            -> Maybe String      -- ^ A domain maybe provided and if Just overrides.
            -> Maybe String      -- ^ An other comment ID may be provided.
@@ -43,7 +43,7 @@ identifier sep (Just d) (Just other) item =
 
 -- | Like 'identifier', but with a standard Separator between domain
 -- and comment ID.
-identifier' :: (Item i) => Maybe String -> Maybe String -> i -> String
+identifier' :: (Item i, HasMeta i) => Maybe String -> Maybe String -> i -> String
 identifier' = identifier "/"
 
 

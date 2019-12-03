@@ -7,13 +7,12 @@ type Identifier = String
 
 -- | A scraped item.
 class Item i where
-  itemUrl :: i -> Maybe String
-  setItemUrl :: i -> Maybe String -> i
   itemId :: i -> Identifier
-  identifyItem :: i -> String
 
 -- | Meta data of a scraped item.
 class HasMeta i where
+  itemUrl :: i -> Maybe String
+  setItemUrl :: i -> Maybe String -> i
   itemScrapeDate :: i -> Maybe UTCTime
   setItemScrapeDate :: i ->  Maybe UTCTime -> i
   itemScraper :: i -> Maybe String

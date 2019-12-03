@@ -10,9 +10,26 @@ import Data.List.Split
 import Data.List
 import Data.Char
 import Control.Lens
+import Data.Maybe
 
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Utils
+import Network.Scrapetition.User
+import Network.Scrapetition.Vote
+import Network.Scrapetition.Env
+import Network.Scrapetition.Item
+
+
+-- | A blower config for scraping www.zeit.de
+zeitDeCommentBlower :: Blower Comment
+zeitDeCommentBlower = Blower
+  { _blwr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _blwr_scraper = comments
+  , _blwr_urlScraper = collectCommentUrls
+  , _blwr_insertItemStmt = commentInsertStmt
+  , _blwr_tableName = "comments"
+  , _blwr_toSql = commentToSql
+  }
 
 
 -- | Generate a unique identifier for a comment. For zeit.de this is
@@ -43,23 +60,52 @@ comment = Comment
        <|> (fmap (Just . stripSpace) $
             text $ "div" @: [hasClass "comment-meta__name"]))
   <*> ((fmap (Just . stripSpace) $ text $ "a" @: [hasClass "comment-meta__date"])
-       <|> (pure Nothing))
-  <*> (pure Nothing) -- no formale datetime
-  <*> (attr "id" $ "article")
+       <|> (pure Nothing))      -- informal datetime
+  <*> (pure Nothing)            -- no formal datetime
+  <*> (attr "id" $ "article")   -- ID
   <*> ((fmap (Just . fragmentOrUrl) $ attr "href" $ "a" @: [hasClass "comment__origin"])
-       <|> (pure Nothing)) -- comment__origin is parent! Verified!
-  <*> (pure Nothing) -- No thread id available! Verified!
+        <|> (pure Nothing))     -- comment__origin is parent! Verified!
+  <*> (pure Nothing)            -- No thread id available! Verified!
   <*> (fmap (Just . countOfFans) $
        attr "data-fans" $
-       "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
-  <*> (pure Nothing)
-  <*> (fmap (Just . (flip zip (repeat 1)) . (splitOn ",")) $
-       attr "data-fans" $
-       "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"])
-  <*> (pure Nothing) -- url
-  <*> (pure Nothing) -- scrapeDate
-  <*> (pure Nothing) -- scraper
+       "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]) -- up votes
+  <*> (pure Nothing)            -- down votes
+  <*> (pure Nothing)            -- url
+  <*> (pure Nothing)            -- scrapeDate
+  <*> (pure Nothing)            -- scraper
 
+
+-- | Scrape users from a thread page. This means simply taking the users from the comments.
+users :: Scraper String [User]
+users =
+  fmap (catMaybes . (map contributor)) $
+  chroots ("article" @: [hasClass "comment"]) comment
+
+
+-- | Scrape votings or so.
+votings :: Scraper String [Vote]
+votings =
+  fmap (concat . (map mkVotes)) $
+  chroots ("article" @: [hasClass "comment"]) commentAndVotingNumbers
+  where
+    mkVotes :: (Comment, [String]) -> [Vote]
+    mkVotes (comment, vs) = map (mkVote comment) vs
+    mkVote :: Comment -> String -> Vote
+    mkVote c u = Vote u (_comment_id c) 1 Nothing Nothing Nothing 
+  
+votingNumbers :: Scraper String [String]
+votingNumbers =
+  fmap (splitOn ",") $
+  attr "data-fans" $
+  "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]
+
+commentAndVotingNumbers :: Scraper String (Comment, [String])
+commentAndVotingNumbers = (,)
+  <$> comment
+  <*> votingNumbers
+
+
+-- * URLs
 
 -- | Collect URLs to further comments.
 collectCommentUrls :: Scraper String [URL]

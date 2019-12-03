@@ -22,7 +22,7 @@ import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import Network.Scrapetition.Utils
 
-import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (commentsThreadsAndNext, identifierZeitDe)
+import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (zeitDeCommentBlower)
 
 
 
@@ -95,22 +95,14 @@ opts_ = Opts
                  <> metavar "VOTINGTABLE")
 
 
-scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
+-- scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
 
 -- evalOpts :: Opts -> Env c i
 evalOpts opts@(Opts url scrapper _ logfile itemTab userTab votingTab) = do
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
-    , _env_scraper = scraperRegistry scrapper
-    , _env_commentIdentifier = commentIdentifier
-    , _env_threadItemToSql = (commentToSql (commentIdentifier Nothing Nothing))
-    , _env_insertItemStmt = (commentInsertStmt itemTab)
-    , _env_userIdentifier = userIdentifier
-    , _env_userToSql = (userToSql (userIdentifier Nothing))
-    , _env_insertUserStmt = (userInsertStmt userTab)
-    , _env_voteToSql = voteToSql
-    , _env_insertVoteStmt = (voteInsertStmt votingTab)
+    , _env_blowers = [ZeitDe.zeitDeCommentBlower]
     , _env_logger = logHandle
     }
 
@@ -139,23 +131,23 @@ run opts@(Opts url _ (SQLite fname) _ _ _ _) = do
   env <- evalOpts opts
   conn <- Sqlite3.connectSqlite3 fname
   prepareSql opts conn
-  cs <- runReaderT (runScraper [url] []) (env & env_conn .~ (Just (conn::Sqlite3.Connection)))
-  report env cs
+  cs <- runReaderT (runScrapers [url] []) (env & env_conn .~ (Just (conn::Sqlite3.Connection)))
+  -- report env cs
   DB.disconnect conn
   closeLogger env
 run opts@(Opts url _ (Postgres connection) _ _ _ _) = do
   env <- evalOpts opts
   conn <- PostgreSQL.connectPostgreSQL connection
   prepareSql opts conn
-  cs <- runReaderT (runScraper [url] []) (env & env_conn .~ (Just (conn::PostgreSQL.Connection)))
-  report env cs
+  cs <- runReaderT (runScrapers [url] []) (env & env_conn .~ (Just (conn::PostgreSQL.Connection)))
+  -- report env cs
   DB.disconnect conn
   closeLogger env
 run opts@(Opts url _ Raw _ _ _ _) = do
   env <- evalOpts opts
-  cs <- runReaderT (runScraper [url] []) env
-  print cs
-  report env cs
+  cs <- runReaderT (runScrapers [url] []) env
+  -- print cs
+  -- report env cs
   closeLogger env
 
 prepareSql :: DB.IConnection conn => Opts -> conn -> IO ()
@@ -165,8 +157,8 @@ prepareSql opts conn = do
   DB.run conn (createVotingTable "comments" "users" "comment_voting") []
   DB.commit conn
 
-report :: (Item i) => Env c i -> [i] -> IO ()
-report env cs = do
-  hPutStrLn (_env_logger env) $ "Scraped " ++ (show $ length cs) ++ " comments"
-  let cs' = Map.fromList(zip (map (identifier "/comment/" Nothing Nothing) cs) cs)
-  hPutStrLn (_env_logger env) $ (show $ length $ Map.keys cs') ++ " are different."
+-- report :: (Item i) => Env c i -> [i] -> IO ()
+-- report env cs = do
+--   hPutStrLn (_env_logger env) $ "Scraped " ++ (show $ length cs) ++ " comments"
+--   let cs' = Map.fromList(zip (map (identifier "/comment/" Nothing Nothing) cs) cs)
+--   hPutStrLn (_env_logger env) $ (show $ length $ Map.keys cs') ++ " are different."

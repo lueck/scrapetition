@@ -10,76 +10,36 @@ import Control.Applicative
 import Database.HDBC
 import Data.Maybe
 import Control.Monad
+import Data.Time
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
-import Network.Scrapetition.User
+-- import Network.Scrapetition.User
+import Network.Scrapetition.Sql
 
 
 -- * Data type for votes.
-
-class HasVoters item where
-  votes :: item -> Maybe [(String, Int)]
-
 
 -- | A record for votes on social media.
 data Vote = Vote
   { _vote_user :: String
   , _vote_item :: String
   , _vote_value :: Int
-  -- , _vote_scrapeDate :: String
-  -- , _vote_scrapeMethod :: String
+  , _vote_url :: Maybe String
+  , _vote_scrapeDate :: Maybe UTCTime
+  , _vote_scraper :: Maybe String
   } deriving (Eq, Show)
 
 makeLenses ''Vote
 
 
-votings :: (Item i, HasVoters i, HasUser i, HasMeta i) =>
-           (i -> String -> String) -- ^ a function that generates user
-                                   -- identifiert from item and a
-                                   -- string giving the user.
-        -> i                       -- ^ the item
-        -> [Vote]
-votings uidFun item
-  | (isJust $ contributor item) && (isJust $ votes item) -- FIXME: do we need a contributor?
-  = fromMaybe [] $ fmap (map (genVote (uidFun item) itmId)) $ votes item
-  | otherwise = []
-  where
-    -- usr = fmap userIdentifier $ contributor item
-    -- usrId = fromMaybe "never" usr
-    itmId = identifyItem item
-    genVote :: (String -> String) -> String -> (String, Int) -> Vote
-    genVote uidFun' iid (who, value) = Vote (uidFun' who) iid value
-
-
-votingUserIdentifier :: (Item i, HasVoters i, HasUser i) =>
-                        i       -- ^ the item voted
-                     -> String  -- ^ the voting user
-                     -> String
-votingUserIdentifier i u =
-  identifier "/user/" Nothing (Just u) i
-
-
--- votingUsers :: (Item i, HasVoters i, HasUser i) =>
---            (i -> String -> String) -- ^ a function that generates user
---                                    -- identifier from item and a
---                                    -- string giving the user.
---         -> i                       -- ^ the item
---         -> [User]
--- votingUsers uidFun item
-votingUsers :: (Item i, HasVoters i, HasUser i, HasMeta i) =>
-               i                -- ^ the item
-            -> [User]
-votingUsers item
-  | (isJust $ contributor item) && (isJust $ votes item)
-  -- = join $ fmap ((fmap concat) . (fmap (map (genVote (uidFun item) itmId))) . votes) item
-  = fromMaybe [] $ fmap (map (genUser (itemUrl item))) $ votes item
-  | otherwise = []
-  where
-    -- genUser :: (String -> String) -> Maybe String -> (String, Int) -> Vote
-    -- genUser uidFun' url (who, _) = User (uidFun' who) Nothing url
-    genUser :: Maybe String -> (String, Int) -> User
-    genUser url (who, _) = User who Nothing url (itemScrapeDate item) (itemScraper item)
+instance HasMeta Vote where
+  itemUrl c = _vote_url c
+  setItemUrl c url = c & vote_url .~ url
+  itemScrapeDate c = _vote_scrapeDate c
+  setItemScrapeDate c date = c & vote_scrapeDate .~ date
+  itemScraper c = _vote_scraper c
+  setItemScraper c scraper = c & vote_scraper .~ scraper
 
 
 
@@ -89,14 +49,22 @@ votingUsers item
 voteInsertStmt :: String            -- ^ table name
                -> String
 voteInsertStmt tName =
-  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?)"
+  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?)"
 
 voteToSql :: Vote -> [SqlValue]
-voteToSql c =
-  [ toSql $ c^.vote_user
-  , toSql $ c^.vote_item
-  , toSql $ c^.vote_value
+voteToSql (Vote usr itm val url scrDate scr) =
+  [ toSql $ fromMaybe "UNKOWN" $ domain $ url
+  , toSql $ usr
+  , toSql $ itm
+  , toSql $ val
+  , toSql $ url
+  , toSql $ scrDate
+  , toSql $ scr
   ]
+
+instance ToSqlValues Vote where
+  toSqlValues = voteToSql
+
 
 
 -- * SQL Strings 
@@ -105,10 +73,15 @@ voteToSql c =
 -- | SQL string for creating a crossing table for votes on 'Vote'
 -- items by 'User'.
 createVotingTable :: String -> String -> String -> String
-createVotingTable votesName usersName tName =
+createVotingTable itemsName usersName tName =
   "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
-  "user TEXT NOT NULL REFERENCES " ++ usersName ++ "(key),\n" ++
-  "item TEXT NOT NULL REFERENCES " ++ votesName ++ "(key),\n" ++
+  "domain TEXT NOT NULL,\n" ++
+  "user TEXT NOT NULL,\n" ++
+  "item TEXT NOT NULL,\n" ++
   "vote INTEGER,\n" ++
-  "CONSTRAINT unique_vote UNIQUE (user, item))\n"
-
+  "url TEXT,\n" ++
+  "scrape_date TEXT,\n" ++
+  "scraper TEXT,\n" ++
+  "CONSTRAINT unique_vote UNIQUE (domain, user, item),\n" ++
+  "CONSTRAINT fk_users FOREIGN KEY (domain, item) REFERENCES " ++ itemsName ++ "(domain, id),\n" ++
+  "CONSTRAINT fk_users FOREIGN KEY (domain, user) REFERENCES " ++ usersName ++ "(domain, user))\n"

@@ -34,6 +34,7 @@ library:
   - HDBC
   - mtl
   - time
+  - HTTP
                  
 executables:
   scrapetition:
@@ -53,6 +54,7 @@ executables:
     - HDBC
     - mtl
     - time
+    - HTTP
     - HDBC-sqlite3
     - HDBC-postgresql
     - optparse-applicative
@@ -77,3 +79,4 @@ tests:
     - time
     - HDBC
     - mtl
+    - HTTP
