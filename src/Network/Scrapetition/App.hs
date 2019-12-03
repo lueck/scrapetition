@@ -39,8 +39,8 @@ runScrapers urls seen = do
       return ()
     Just next -> do
       L.log $ "Scraping " ++ next
-      body <- liftIO $ getUrl next
-      newUrls <- forM blowers (scrape urls seen next body) -- FIXME: return urls
+      -- body <- liftIO $ getUrl next
+      newUrls <- forM blowers (scrape urls seen next "asdf") -- FIXME: return urls
       -- let newUrls = fromMaybe [] $ fmap snd result
       liftIO $ threadDelay 2000000
       runScrapers (urls++(concat newUrls)) (next:seen)
@@ -55,8 +55,11 @@ scrape :: (DB.IConnection c,
        -> Blower i
        -> App c i ([URL])
 scrape urls seen url body blower = do
-  let items = scrapeStringLike body (_blwr_scraper blower)
-      newUrls = fromMaybe [] $ scrapeStringLike body (_blwr_urlScraper blower)
+  -- let items = scrapeStringLike body (_blwr_scraper blower)
+  --     newUrls = fromMaybe [] $ scrapeStringLike body (_blwr_urlScraper blower)
+  items <- liftIO $ scrapeURL url (_blwr_scraper blower)
+  newUrls' <- liftIO $ scrapeURL url (_blwr_urlScraper blower)
+  let newUrls = fromMaybe [] newUrls'
   appString <- getAppString
   now <- liftIO getCurrentTime
   -- add meta data to items

@@ -74,7 +74,7 @@ commentInsertStmt tName =
   "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 commentToSql :: Comment -> [SqlValue]
-commentToSql (Comment id_ txt usr name dateInf date parent thread upVotes downVotes url scrD scr) =
+commentToSql (Comment txt usr name dateInf date id_ parent thread upVotes downVotes url scrD scr) =
   [ toSql id_
   , toSql $ fromMaybe "UNKOWN" $ domain url
   , toSql txt

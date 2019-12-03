@@ -25,4 +25,5 @@ insertScrapedItems blower items = do
       -- insert items
       stmt <- liftIO $ prepare conn $ ((_blwr_insertItemStmt blower) (_blwr_tableName blower))
       liftIO $ executeMany stmt $ map toSqlValues items
+      liftIO $ commit conn
     Nothing -> return ()
