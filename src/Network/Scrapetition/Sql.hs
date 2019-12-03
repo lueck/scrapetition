@@ -7,23 +7,24 @@ import Control.Monad.Reader
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
+import Network.Scrapetition.Item
+import Network.Scrapetition.Dispatcher
 
-class ToSqlValues i where
-  toSqlValues :: i -> [SqlValue]
 
-
-insertScrapedItems :: (IConnection c,
-                       ToSqlValues i) =>
-                      Blower i    -- ^ the current blower
-                   -> [i]         -- ^ the items to insert
-                   -> App c i ()
-insertScrapedItems _ [] = return ()
-insertScrapedItems blower items = do
+insertScrapedItems :: (IConnection c) =>
+                      Dispatcher    -- ^ the current dispatcher
+                   -> [ScrapedItem]         -- ^ the items to insert
+                   -> [[SqlValue]]
+                   -> App c ()
+insertScrapedItems _ [] _ = return ()
+insertScrapedItems dispatcher items values = do
   conf <- ask
   case (_env_conn conf) of
     Just conn -> do
       -- insert items
-      stmt <- liftIO $ prepare conn $ ((_blwr_insertItemStmt blower) (_blwr_tableName blower))
-      liftIO $ executeMany stmt $ map toSqlValues items
+      stmt <- liftIO $ prepare conn ((insStmt $ head items) (_dptchr_tableName dispatcher))
+      liftIO $ executeMany stmt values --   $ map toSqlValues items
       liftIO $ commit conn
     Nothing -> return ()
+  where
+    insStmt (MkScrapedItem i) = insertStmt i

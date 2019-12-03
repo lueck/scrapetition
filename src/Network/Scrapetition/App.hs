@@ -13,6 +13,7 @@ import Network.HTTP
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
+import Network.Scrapetition.Dispatcher
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Sql
@@ -22,15 +23,14 @@ import Network.Scrapetition.Logging as L
 -- | Run a scraper and call it recursively on the scraped URLs. Items
 -- are collected and may be stored in a database, depending on 'Env'
 -- passed in ReaderT.
-runScrapers :: (DB.IConnection c,
-                Item i, ThreadItem i, HasMeta i, ToSqlValues i) =>
+runScrapers :: (DB.IConnection c) =>
                [URL]                    -- ^ URLs to scrape
             -> [URL]                    -- ^ URLs done
-            -> App c i () -- same as -> ReaderT (Env c i) IO ([i])
+            -> App c () -- same as -> ReaderT (Env c i) IO ([i])
 runScrapers urls seen = do
   conf <- ask
   let maybeNext = nextUrl urls seen
-      blowers = _env_blowers conf
+      dispatchers = _env_dispatchers conf
   now <- liftIO getCurrentTime
   appString <- getAppString
   case maybeNext of
@@ -40,40 +40,34 @@ runScrapers urls seen = do
     Just next -> do
       L.log $ "Scraping " ++ next
       -- body <- liftIO $ getUrl next
-      newUrls <- forM blowers (scrape urls seen next "asdf") -- FIXME: return urls
+      -- run scrapers
+      newUrls <- forM (filter (dispatch next) dispatchers) 
+        (scrape urls seen next "asdf") -- FIXME: return urls
       -- let newUrls = fromMaybe [] $ fmap snd result
       liftIO $ threadDelay 2000000
       runScrapers (urls++(concat newUrls)) (next:seen)
-      return ()
 
-scrape :: (DB.IConnection c,
-           Item i, ThreadItem i, HasMeta i, ToSqlValues i) =>
+scrape :: (DB.IConnection c) =>
           [URL]
        -> [URL]
        -> URL
        -> String
-       -> Blower i
-       -> App c i ([URL])
-scrape urls seen url body blower = do
-  -- let items = scrapeStringLike body (_blwr_scraper blower)
-  --     newUrls = fromMaybe [] $ scrapeStringLike body (_blwr_urlScraper blower)
-  items <- liftIO $ scrapeURL url (_blwr_scraper blower)
-  newUrls' <- liftIO $ scrapeURL url (_blwr_urlScraper blower)
+       -> Dispatcher
+       -> App c ([URL])
+scrape urls seen url body dispatcher = do
+  items <- liftIO $ scrapeURL url (_dptchr_scraper dispatcher)
+  newUrls' <- liftIO $ scrapeURL url (_dptchr_urlScraper dispatcher)
   let newUrls = fromMaybe [] newUrls'
   appString <- getAppString
   now <- liftIO getCurrentTime
-  -- add meta data to items
-  let items' = fromMaybe [] $
-        fmap ((map
-               ((flip setItemScraper $ Just appString) .
-                (flip setItemScrapeDate $ Just now) .
-                (flip setItemUrl $ Just url)))
-             ) items
-      -- items'' = propagateThreads (threadItemIdentifier Nothing) items'
+  let items' = fromMaybe [] items
   L.log $ "Found " ++ (show $ length items') ++ " items, and "
     ++ (show $ length newUrls) ++ " URLs."
-  insertScrapedItems blower items'
+  insertScrapedItems dispatcher items' $ map (unpackToSql appString now) items'
   return newUrls
+  where
+    unpackToSql appString now (MkScrapedItem i) =
+      toSqlValues $ addMeta appString now url i
 
 
 nextUrl :: [URL] -> [URL] -> Maybe URL
@@ -90,5 +84,5 @@ getUrl url = do
   return body
 
 
-getAppString :: App c i (String)
+getAppString :: App c (String)
 getAppString = liftIO getProgName

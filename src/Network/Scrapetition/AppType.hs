@@ -11,5 +11,5 @@ import Network.Scrapetition.Env
 
 -- | The type variables must be bound to 'DB.IConnection' and 'Item'
 -- and 'ThreadItem' like in 'runScraper'.
-type App c i a = ReaderT (Env c i) IO a
+type App c a = ReaderT (Env c) IO a
 

@@ -93,6 +93,7 @@ commentToSql (Comment txt usr name dateInf date id_ parent thread upVotes downVo
 
 instance ToSqlValues Comment where
   toSqlValues = commentToSql
+  insertStmt _ = commentInsertStmt
 
 
 -- * SQL Strings 

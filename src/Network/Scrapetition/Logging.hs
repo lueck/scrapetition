@@ -8,7 +8,7 @@ import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
 
 
-log :: String -> App c i ()
+log :: String -> App c ()
 log mesg = do
   env <- ask
   liftIO $ hPutStrLn (_env_logger env) mesg

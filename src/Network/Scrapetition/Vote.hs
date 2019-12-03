@@ -64,6 +64,7 @@ voteToSql (Vote usr itm val url scrDate scr) =
 
 instance ToSqlValues Vote where
   toSqlValues = voteToSql
+  insertStmt _ = voteInsertStmt
 
 
 

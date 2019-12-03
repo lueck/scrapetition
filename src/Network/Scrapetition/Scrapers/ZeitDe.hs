@@ -18,31 +18,31 @@ import Network.Scrapetition.User
 import Network.Scrapetition.Vote
 import Network.Scrapetition.Env
 import Network.Scrapetition.Item
+import Network.Scrapetition.Dispatcher
 
 
--- | A blower for scraping comments from www.zeit.de
--- zeitDeCommentBlower :: Blower Comment
-zeitDeCommentBlower = Blower
-  { _blwr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _blwr_scraper = comments
-  , _blwr_urlScraper = collectCommentUrls
-  , _blwr_insertItemStmt = commentInsertStmt
-  , _blwr_tableName = "comments"
-  , _blwr_toSql = commentToSql
+-- | A dispatcher for scraping comments from www.zeit.de
+-- zeitDeCommentDispatcher :: Dispatcher Comment
+zeitDeCommentDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _dptchr_scraper = commentsPacked
+  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_insertItemStmt = commentInsertStmt
+  , _dptchr_tableName = "comments"
   }
 
--- | A blower for scraping authors of comments from www.zeit.de
--- zeitDeUserBlower :: Blower User
-zeitDeUserBlower = Blower
-  { _blwr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _blwr_scraper = users
-  , _blwr_urlScraper = collectCommentUrls
-  , _blwr_insertItemStmt = userInsertStmt
-  , _blwr_tableName = "users"
-  , _blwr_toSql = userToSql
+-- | A dispatcher for scraping authors of comments from www.zeit.de
+-- zeitDeUserDispatcher :: Dispatcher User
+zeitDeUserDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _dptchr_scraper = usersPacked
+  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_insertItemStmt = userInsertStmt
+  , _dptchr_tableName = "users"
   }
 
--- zeitDeBlowers = [zeitDeCommentBlower, zeitDeUserBlower]
+zeitDeDispatchers :: [Dispatcher]
+zeitDeDispatchers = [zeitDeCommentDispatcher, zeitDeUserDispatcher]
 
 -- | Generate a unique identifier for a comment. For zeit.de this is
 -- the domain name concatenated with an comment ID.
@@ -56,6 +56,9 @@ commentsThreadsAndNext = (\cs urls -> (cs, urls))
   <$> comments
   <*> threadsAndNextUrl
 
+
+commentsPacked :: Scraper String [ScrapedItem]
+commentsPacked = fmap (map MkScrapedItem) comments
 
 -- | Scrape all comments from a page.
 comments :: Scraper String [Comment]
@@ -85,6 +88,10 @@ comment = Comment
   <*> (pure Nothing)            -- url
   <*> (pure Nothing)            -- scrapeDate
   <*> (pure Nothing)            -- scraper
+
+
+usersPacked :: Scraper String [ScrapedItem]
+usersPacked = fmap (map MkScrapedItem) users
 
 
 -- | Scrape users from a thread page. This means simply taking the users from the comments.

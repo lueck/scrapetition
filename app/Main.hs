@@ -21,8 +21,9 @@ import Network.Scrapetition.Vote
 import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import Network.Scrapetition.Utils
+import Network.Scrapetition.Dispatcher
 
-import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe (zeitDeCommentBlower)
+import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe
 
 
 
@@ -102,7 +103,7 @@ evalOpts opts@(Opts url scrapper _ logfile itemTab userTab votingTab) = do
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
-    , _env_blowers = [ZeitDe.zeitDeCommentBlower]
+    , _env_dispatchers = ZeitDe.zeitDeDispatchers
     , _env_logger = logHandle
     }
 
@@ -111,7 +112,7 @@ getLogger Nothing = do { return stderr }
 getLogger (Just fname) = openFile fname WriteMode
 
 
-closeLogger :: Env c i -> IO ()
+closeLogger :: Env c -> IO ()
 closeLogger env = do
   let logger = _env_logger env
   if  logger == stderr then return() else hClose logger

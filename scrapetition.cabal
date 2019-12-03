@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 011614208c63b2397f43bf815282d611915457c1cb8e3e5875a0cb6a71a3ec32
+-- hash: 66804a6e3db2c8f220c09c7a37633c27a1a15a3620182495ebab058019b3da64
 
 name:           scrapetition
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Network.Scrapetition.App
       Network.Scrapetition.AppType
       Network.Scrapetition.Comment
+      Network.Scrapetition.Dispatcher
       Network.Scrapetition.Env
       Network.Scrapetition.Item
       Network.Scrapetition.Logging
@@ -50,6 +51,7 @@ library
     , lens
     , mtl
     , network-uri
+    , regex-tdfa
     , scalpel
     , split
     , time
@@ -73,6 +75,7 @@ executable scrapetition
     , mtl
     , network-uri
     , optparse-applicative
+    , regex-tdfa
     , scalpel
     , scrapetition
     , split
@@ -98,6 +101,7 @@ test-suite scrapetition-test
     , lens
     , mtl
     , network-uri
+    , regex-tdfa
     , scalpel
     , scrapetition
     , split

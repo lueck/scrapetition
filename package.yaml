@@ -34,6 +34,7 @@ library:
   - HDBC
   - mtl
   - time
+  - regex-tdfa
   - HTTP
                  
 executables:
@@ -54,6 +55,7 @@ executables:
     - HDBC
     - mtl
     - time
+    - regex-tdfa
     - HTTP
     - HDBC-sqlite3
     - HDBC-postgresql
@@ -80,3 +82,4 @@ tests:
     - HDBC
     - mtl
     - HTTP
+    - regex-tdfa
