@@ -23,6 +23,7 @@ import Network.Scrapetition.User
 -- | A record for comments on social media.
 data Comment = Comment
   { _comment_text :: T.Text
+  , _comment_title :: Maybe T.Text
   , _comment_user :: Maybe T.Text
   , _comment_name :: Maybe T.Text
   , _comment_dateInformal :: Maybe T.Text -- ^ informal date information like "3 weeks ago"
@@ -72,13 +73,14 @@ commentIdentifier = identifier "/comment/"
 commentInsertStmt :: String            -- ^ table name
                   -> String
 commentInsertStmt tName =
-  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
 commentToSql :: Comment -> [SqlValue]
-commentToSql (Comment txt usr name dateInf date id_ parent thread upVotes downVotes url scrD scr) =
+commentToSql (Comment txt tit usr name dateInf date id_ parent thread upVotes downVotes url scrD scr) =
   [ toSql id_
   , toSql $ fromMaybe "UNKOWN" $ domainT url
   , toSql txt
+  , toSql tit
   , toSql usr
   , toSql name
   , toSql dateInf
@@ -106,6 +108,7 @@ createCommentTable tName =
   "id TEXT NOT NULL,\n" ++
   "domain TEXT NOT NULL,\n" ++
   "text TEXT NOT NULL,\n" ++
+  "title TEXT,\n" ++
   "user TEXT,\n" ++
   "name TEXT,\n" ++
   "date_informal TEXT,\n" ++

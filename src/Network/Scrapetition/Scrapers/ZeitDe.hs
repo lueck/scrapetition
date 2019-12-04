@@ -91,13 +91,17 @@ comments = chroots ("article" @: [hasClass "comment"]) comment
 comment :: Scraper T.Text Comment
 comment = Comment
   <$> (fmap T.strip $ innerHTML $ "div" @: [hasClass "comment__body"])
+  <*> ((fmap (Just . T.strip . (T.takeWhile ((/=8212) . ord))) $
+        text $ "a" @: [hasClass "comment-meta__date"])
+       <|> (pure Nothing))      -- title: take #x.y as title, U+8212 is a em-dash
   <*> ((fmap (T.stripPrefix userPrefix) $ attr "href" $
         "div" @: [hasClass "comment-meta__name"] // "a")
        <|> (pure Nothing))
   <*> ((fmap Just $ text $ "div" @: [hasClass "comment-meta__name"] // "a")
        <|> (fmap (Just . T.strip) $
             text $ "div" @: [hasClass "comment-meta__name"]))
-  <*> ((fmap (Just . T.strip) $ text $ "a" @: [hasClass "comment-meta__date"])
+  <*> ((fmap (Just . T.strip . (T.dropWhile ((==8212) . ord)) . (T.dropWhile ((/=8212) . ord))) $
+        text $ "a" @: [hasClass "comment-meta__date"])
        <|> (pure Nothing))      -- informal datetime
   <*> (pure Nothing)            -- no formal datetime
   <*> (attr "id" $ "article")   -- ID

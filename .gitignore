@@ -4,4 +4,6 @@
 *~
 *.lock
 
-data.db
+*.db
+utils/*.html
+utils/*.csv
