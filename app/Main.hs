@@ -155,7 +155,8 @@ prepareSql :: DB.IConnection conn => Opts -> conn -> IO ()
 prepareSql opts conn = do
   DB.run conn (createCommentTable "comments") []
   DB.run conn (createUserTable "users") []
-  DB.run conn (createVotingTable "comments" "users" "comment_voting") []
+  DB.run conn (createUserTable "voters") []
+  DB.run conn (createVotingTable "comments" "voters" "comment_voting") []
   DB.commit conn
 
 -- report :: (Item i) => Env c i -> [i] -> IO ()

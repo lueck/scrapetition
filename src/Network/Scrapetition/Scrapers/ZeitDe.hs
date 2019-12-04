@@ -23,7 +23,6 @@ import Network.Scrapetition.Dispatcher
 
 
 -- | A dispatcher for scraping comments from www.zeit.de
--- zeitDeCommentDispatcher :: Dispatcher Comment
 zeitDeCommentDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = commentsPacked
@@ -33,7 +32,6 @@ zeitDeCommentDispatcher = Dispatcher
   }
 
 -- | A dispatcher for scraping authors of comments from www.zeit.de
--- zeitDeUserDispatcher :: Dispatcher User
 zeitDeUserDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = usersPacked
@@ -42,8 +40,32 @@ zeitDeUserDispatcher = Dispatcher
   , _dptchr_tableName = "users"
   }
 
+-- | A dispatcher for scraping user IDs of votings from www.zeit.de
+zeitDeVoterDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _dptchr_scraper = votersPacked
+  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_insertItemStmt = userInsertStmt
+  , _dptchr_tableName = "voters" -- not users, so in future we can relate!
+  }
+
+-- | A dispatcher for scraping user IDs of votings from www.zeit.de
+zeitDeVotingDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _dptchr_scraper = votingsPacked
+  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_insertItemStmt = voteInsertStmt
+  , _dptchr_tableName = "comment_voting"
+  }
+
+
 zeitDeDispatchers :: [Dispatcher]
-zeitDeDispatchers = [zeitDeCommentDispatcher, zeitDeUserDispatcher]
+zeitDeDispatchers =
+  [ zeitDeCommentDispatcher
+  , zeitDeUserDispatcher
+  , zeitDeVoterDispatcher
+  , zeitDeVotingDispatcher
+  ]
 
 -- | Generate a unique identifier for a comment. For zeit.de this is
 -- the domain name concatenated with an comment ID.
@@ -94,13 +116,15 @@ comment = Comment
 usersPacked :: Scraper T.Text [ScrapedItem]
 usersPacked = fmap (map MkScrapedItem) users
 
-
 -- | Scrape users from a thread page. This means simply taking the users from the comments.
 users :: Scraper T.Text [User]
 users =
   fmap (catMaybes . (map contributor)) $
   chroots ("article" @: [hasClass "comment"]) comment
 
+
+votingsPacked :: Scraper T.Text [ScrapedItem]
+votingsPacked = fmap (map MkScrapedItem) votings
 
 -- | Scrape votings or so.
 votings :: Scraper T.Text [Vote]
@@ -123,6 +147,20 @@ commentAndVotingNumbers :: Scraper T.Text (Comment, [T.Text])
 commentAndVotingNumbers = (,)
   <$> comment
   <*> votingNumbers
+
+
+votersPacked :: Scraper T.Text [ScrapedItem]
+votersPacked = fmap (map MkScrapedItem) voters
+
+voters :: Scraper T.Text [User]
+voters =
+  fmap (concat . (map mkVoters)) $
+  chroots ("article" @: [hasClass "comment"]) votingNumbers
+  where
+    mkVoters :: [T.Text] -> [User]
+    mkVoters nums = map mkUser nums
+    mkUser :: T.Text -> User
+    mkUser num = User num Nothing Nothing Nothing Nothing
 
 
 -- * URLs

@@ -12,6 +12,7 @@ import Data.Maybe
 import Control.Monad
 import Data.Time
 import qualified Data.Text as T
+import Data.Monoid
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
@@ -33,6 +34,14 @@ data Vote = Vote
 
 makeLenses ''Vote
 
+
+instance Item Vote where
+  itemId c = _vote_user c <> _vote_item c
+
+instance ThreadItem Vote where
+  itemParent c = Nothing
+  itemThread c = Nothing
+  setItemThread c _ = c
 
 instance HasMeta Vote where
   itemUrl c = _vote_url c
