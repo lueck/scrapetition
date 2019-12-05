@@ -62,9 +62,9 @@ start=${positional[0]}
 # recursive select using a CTE
 ids=$(sqlite3 -batch $db <<EOF
 WITH RECURSIVE ids (id) AS (
-     VALUES ($start)
+     VALUES ('$start')
      UNION
-     SELECT comments.id FROM ids, comments 
+     SELECT comments.id FROM ids, comments
      WHERE comments.parent = ids.id)
 SELECT * FROM ids;
 EOF
@@ -75,9 +75,9 @@ EOF
 rc=""
 for i in $ids; do
     if [[ "$rc" == "" ]]; then
-	rc=$i;
+	rc="'$i'";
     else
-	rc="$rc$delim$i";
+	rc="$rc$delim'$i'";
     fi
 done
 

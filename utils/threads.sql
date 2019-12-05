@@ -8,7 +8,8 @@ WITH RECURSIVE
 SELECT * FROM dis;
 
 
--- same as above, but regenerate the whole table
+-- Same as above, but regenerate the whole table. See threadview.sql
+-- for a view that stores this query.
 WITH RECURSIVE
      dis (id, domain, text, title, user, name, date_informal, date, parent, thread, up_votes, down_votes, url, scrape_url, scraper, height) AS (
      SELECT id, domain, text, title, user, name, date_informal, date, parent, id, up_votes, down_votes, url, scrape_date, scraper, 0 FROM comments WHERE parent is NULL
