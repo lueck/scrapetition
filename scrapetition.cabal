@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ddc22e9d0895df20e8c9535ee8772e735d9dd1161a855eba8e88ee45a5737d74
+-- hash: 7ea30b61b4e216082b3b79bcc81e00c6fd682e201c741af7b5b09f03006c9f6f
 
 name:           scrapetition
 version:        0.1.0.0
@@ -34,6 +34,7 @@ library
       Network.Scrapetition.Env
       Network.Scrapetition.Item
       Network.Scrapetition.Logging
+      Network.Scrapetition.Scrapers.Generic
       Network.Scrapetition.Scrapers.ZeitDe
       Network.Scrapetition.Sql
       Network.Scrapetition.User
