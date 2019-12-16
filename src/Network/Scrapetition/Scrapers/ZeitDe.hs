@@ -20,6 +20,7 @@ import Network.Scrapetition.Vote
 import Network.Scrapetition.Env
 import Network.Scrapetition.Item
 import Network.Scrapetition.Dispatcher
+import Network.Scrapetition.Scrapers.Generic
 
 
 -- | A dispatcher for scraping comments from www.zeit.de
@@ -200,11 +201,6 @@ commentNextButtonUrl =
 commentSectionUrls :: Scraper T.Text [URL]
 commentSectionUrls =
   chroots ("div" @: [hasClass "comment-section__item"] // "li") link
-
-
--- | Return the href attribute of an html ancor.
-link :: Scraper T.Text URL
-link = fmap T.unpack $ attr "href" $ "a"
 
 
 -- * Pure helper functions

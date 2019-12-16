@@ -2,6 +2,7 @@
 module Network.Scrapetition.Utils
   ( domain
   , domainT
+  , mkAbsolute
   , identifier
   , identifier'
   , propagateThreads
@@ -28,6 +29,18 @@ domain url =
 
 domainT :: Maybe T.Text -> Maybe T.Text
 domainT = (fmap T.pack) . domain . (fmap T.unpack)
+
+
+-- | Assert that the second parameter is a domain. If not, take the
+-- domain from the first parameter.
+mkAbsolute :: String -> String -> String
+mkAbsolute url path
+  --  | isURI path = path
+  --  | isURI url && isRelativeReference path
+  = fromMaybe path $ fmap ((\f -> (f "")) . (uriToString id)) $
+    relativeTo <$> parseRelativeReference path <*> parseURI url
+  --  | otherwise = path
+
 
 -- | Generate an ID for a scraped item. It is reasonable to choose
 -- some combination of the domain name and the item's ID. The type of

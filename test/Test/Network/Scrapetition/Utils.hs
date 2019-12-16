@@ -14,7 +14,7 @@ import Network.Scrapetition.Comment
 
 minC :: T.Text -> Maybe T.Text -> Maybe T.Text -> Comment
 minC id_ parent thread =
-  Comment "Hello" Nothing Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing
+  Comment "Hello" Nothing Nothing Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing
 
 cId :: Maybe T.Text -> Comment -> T.Text
 cId = identifier "|" (Just "testdomain")
@@ -152,3 +152,10 @@ test_domain = do
   assertEqual Nothing (domain $ Just "www.feu.de/ksw/literatur/lueck.html#Kontakt")
   assertEqual Nothing (domain $ Just "urn:www.feu.de/ksw/literatur/lueck.html#Kontakt")
   
+
+test_assertDomain = do
+  assertEqual "http://www.feu.de/ksw" (mkAbsolute "http://www.feu.de" "ksw")
+  assertEqual "http://www.feu.de/ksw" (mkAbsolute "http://www.feu.de/mi" "/ksw")
+  assertEqual "http://www.feh.de/ksw" (mkAbsolute "http://www.feu.de/mi" "http://www.feh.de/ksw")
+  assertEqual "http://www.feh.de/ksw" (mkAbsolute "/mi" "http://www.feh.de/ksw")
+  assertEqual "/ksw" (mkAbsolute "/mi" "/ksw")

@@ -13,6 +13,7 @@ import Network.HTTP.Conduit
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Text as T
 import Data.Text.Encoding
+import Data.List
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
@@ -30,8 +31,8 @@ runScrapers :: (DB.IConnection c) =>
             -> App c ()
 runScrapers urls seen = do
   conf <- ask
-  let maybeNext = nextUrl urls seen
-      dispatchers = _env_dispatchers conf
+  maybeNext <- nextUrl urls seen
+  let dispatchers = _env_dispatchers conf
   now <- liftIO getCurrentTime
   appString <- getAppString
   case maybeNext of
@@ -39,13 +40,23 @@ runScrapers urls seen = do
       L.log "All URLs seen."
       return ()
     Just next -> do
+      L.log $ (show $ length urls) ++ " URLs left to scrape."
       L.log $ "Scraping " ++ next
       body <- liftIO $ getUrl next
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next body)
+      let startDomain = Just $ _env_startDomain conf
+          newUrls' = nub $ if (_env_crossDomain conf)
+            then (map (mkAbsolute next) $ concat newUrls)
+            else (filter ((==startDomain) . domain . Just) $
+                  map (mkAbsolute next) $ concat newUrls)
+          seen' = next:seen
+          unionOfUrls = if (_env_lifo conf)
+            then ((reverse newUrls') `union` urls)
+            else (urls `union` newUrls')
       liftIO $ threadDelay 2000000
-      runScrapers (urls++(concat newUrls)) (next:seen)
+      runScrapers (unionOfUrls \\ seen') seen'
 
 -- | Run a scraper given in dispatcher parameter over the current
 -- URL. Scraped items are written to a database.
@@ -59,7 +70,7 @@ scrape :: (DB.IConnection c) =>
 scrape urls seen url body dispatcher = do
   let items = scrapeStringLike body (_dptchr_scraper dispatcher)
       newUrls' = scrapeStringLike body (_dptchr_urlScraper dispatcher)
-  let newUrls = fromMaybe [] newUrls'
+  let newUrls = map (mkAbsolute url) $ fromMaybe [] newUrls'
   appString <- getAppString
   now <- liftIO getCurrentTime
   let items' = fromMaybe [] items
@@ -73,11 +84,16 @@ scrape urls seen url body dispatcher = do
       toSqlValues $ addMeta (T.pack appString) now (T.pack url) i
 
 
-nextUrl :: [URL] -> [URL] -> Maybe URL
-nextUrl [] _ = Nothing
-nextUrl (x:xs) seen
-  | x `elem` seen = nextUrl xs seen
-  | otherwise = Just x
+nextUrl :: [URL] -> [URL] -> App c (Maybe URL)
+nextUrl [] _ = return Nothing
+nextUrl us seen = do
+  return $ nextUrl' us seen
+  where
+    nextUrl' :: [URL] -> [URL] -> Maybe URL
+    nextUrl' [] _ = Nothing
+    nextUrl' (x:xs) seen
+      | x `elem` seen = nextUrl' xs seen
+      | otherwise = Just x
 
 
 getUrl :: String -> IO T.Text

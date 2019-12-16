@@ -15,6 +15,9 @@ data Env c = Env
   { _env_conn :: Maybe c
   , _env_dispatchers :: [Dispatcher]
   , _env_logger :: Handle
+  , _env_startDomain :: String
+  , _env_crossDomain :: Bool
+  , _env_lifo :: Bool
   }
 
 makeLenses ''Env
