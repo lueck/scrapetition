@@ -22,6 +22,7 @@ import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Dispatcher
+import Network.Scrapetition.Scrapers.Generic
 
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe
 
@@ -29,6 +30,9 @@ import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe
 
 data Opts = Opts
   { url :: String
+  , followLinks :: Bool
+  , crossDomain :: Bool
+  , lifo :: Bool
   , scraper :: ScraperSelector
   , output :: OutputMethod
   , logfile :: Maybe String
@@ -54,9 +58,19 @@ opts_ :: Parser Opts
 opts_ = Opts
   <$> argument str (metavar "URL"
                     <> help "An URL to start with.")
+  <*> switch (long "follow-links"
+              <> short 'f'
+              <> help "Follow all links found on a page. Use this in combination with -x to allow cross-domain scraping.")
+  <*> switch (long "cross-domain"
+              <> short 'x'
+              <> help "Follow links pointing outside of the domain of the start URL.")
+  <*> switch (long "lifo"
+              <> short 'l'
+              <> help "Last in, first out handling of URLs: With this switch the last found URL is scraped first. By default, the first found URL is scraped first.")
   <*> (flag ZeitDeComments ZeitDeComments
-       (long "wwwZeitDe-comments"
-        <> help "Scraper for discussion on articles at http://www.zeit.de. This is the default scraper -- and the only one so far."))
+        (long "wwwZeitDe-comments"
+         <> help "Scraper for discussion on articles at http://www.zeit.de. This is the default scraper -- and the only one so far."))
+
   <*> ((SQLite <$>
         (strOption (short 's'
                     <> long "sqlite"
@@ -99,13 +113,22 @@ opts_ = Opts
 -- scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
 
 -- evalOpts :: Opts -> Env c i
-evalOpts opts@(Opts url scrapper _ logfile itemTab userTab votingTab) = do
+evalOpts opts@(Opts url follow cross lifo scrapper _ logfile itemTab userTab votingTab) = do
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
-    , _env_dispatchers = ZeitDe.zeitDeDispatchers
+    , _env_dispatchers = (followLinkDispatchers follow) ++
+                         (genDispatchers scrapper)
     , _env_logger = logHandle
+    , _env_startDomain = fromMaybe "unkown" $ domain $ Just url
+    , _env_crossDomain = cross
+    , _env_lifo = lifo
     }
+  where
+    followLinkDispatchers True = [urlsCollectingDispatcher]
+    followLinkDispatchers False = []
+    genDispatchers ZeitDeComments = ZeitDe.zeitDeDispatchers
+
 
 getLogger :: Maybe String -> IO Handle
 getLogger Nothing = do { return stderr }
@@ -128,7 +151,7 @@ main = execParser opts >>= run
 
 -- | Evaluate commandline options and run the scraper.
 run :: Opts -> IO ()
-run opts@(Opts url _ (SQLite fname) _ _ _ _) = do
+run opts@(Opts url _ _ _ _ (SQLite fname) _ _ _ _) = do
   env <- evalOpts opts
   conn <- Sqlite3.connectSqlite3 fname
   prepareSql opts conn
@@ -136,7 +159,7 @@ run opts@(Opts url _ (SQLite fname) _ _ _ _) = do
   -- report env cs
   DB.disconnect conn
   closeLogger env
-run opts@(Opts url _ (Postgres connection) _ _ _ _) = do
+run opts@(Opts url _ _ _ _ (Postgres connection) _ _ _ _) = do
   env <- evalOpts opts
   conn <- PostgreSQL.connectPostgreSQL connection
   prepareSql opts conn
@@ -144,7 +167,7 @@ run opts@(Opts url _ (Postgres connection) _ _ _ _) = do
   -- report env cs
   DB.disconnect conn
   closeLogger env
-run opts@(Opts url _ Raw _ _ _ _) = do
+run opts@(Opts url _ _ _ _ Raw _ _ _ _) = do
   env <- evalOpts opts
   cs <- runReaderT (runScrapers [url] []) env
   -- print cs
