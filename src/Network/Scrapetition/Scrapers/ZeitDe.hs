@@ -29,7 +29,7 @@ zeitDeCommentDispatcher = Dispatcher
   , _dptchr_scraper = commentsPacked
   , _dptchr_urlScraper = collectCommentUrls
   , _dptchr_insertItemStmt = commentInsertStmt
-  , _dptchr_tableName = "comments"
+  , _dptchr_itemName = "comment"
   }
 
 -- | A dispatcher for scraping authors of comments from www.zeit.de
@@ -38,7 +38,7 @@ zeitDeUserDispatcher = Dispatcher
   , _dptchr_scraper = usersPacked
   , _dptchr_urlScraper = collectCommentUrls
   , _dptchr_insertItemStmt = userInsertStmt
-  , _dptchr_tableName = "users"
+  , _dptchr_itemName = "user"
   }
 
 -- | A dispatcher for scraping user IDs of votings from www.zeit.de
@@ -47,7 +47,7 @@ zeitDeVoterDispatcher = Dispatcher
   , _dptchr_scraper = votersPacked
   , _dptchr_urlScraper = collectCommentUrls
   , _dptchr_insertItemStmt = userInsertStmt
-  , _dptchr_tableName = "voters" -- not users, so in future we can relate!
+  , _dptchr_itemName = "voter" -- not users, so in future we can relate!
   }
 
 -- | A dispatcher for scraping user IDs of votings from www.zeit.de
@@ -56,14 +56,14 @@ zeitDeVotingDispatcher = Dispatcher
   , _dptchr_scraper = votingsPacked
   , _dptchr_urlScraper = collectCommentUrls
   , _dptchr_insertItemStmt = voteInsertStmt
-  , _dptchr_tableName = "comment_voting"
+  , _dptchr_itemName = "comment_voting"
   }
 
 
 zeitDeDispatchers :: [Dispatcher]
 zeitDeDispatchers =
-  [ zeitDeCommentDispatcher
-  , zeitDeUserDispatcher
+  [ zeitDeUserDispatcher
+  , zeitDeCommentDispatcher
   , zeitDeVoterDispatcher
   , zeitDeVotingDispatcher
   ]

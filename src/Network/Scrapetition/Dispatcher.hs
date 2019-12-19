@@ -7,7 +7,7 @@ module Network.Scrapetition.Dispatcher
 import Text.HTML.Scalpel
 import Text.Regex.TDFA
 import qualified Data.Text as T
-
+import qualified Data.Map as Map
 
 import Network.Scrapetition.Item
 
@@ -21,8 +21,8 @@ data Dispatcher = Dispatcher
   { _dptchr_urlScheme :: String                  -- ^ regular expression
   , _dptchr_scraper :: Scraper T.Text ([ScrapedItem]) -- ^ the scraper
   , _dptchr_urlScraper :: Scraper T.Text ([URL]) -- ^ the URL scraper
-  , _dptchr_insertItemStmt :: String -> String   -- ^ the SQL statement for inserting
-  , _dptchr_tableName :: String                  -- ^ the name of the SQL table
+  , _dptchr_insertItemStmt :: Map.Map String String -- ^ the SQL statement for inserting
+  , _dptchr_itemName :: String                   -- ^ the type of the item
   }
   
 -- | Filter by urlScheme if a scraper should be run.

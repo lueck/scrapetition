@@ -23,14 +23,22 @@ insertScrapedItems _ [] _ = return ()
 insertScrapedItems dispatcher items values = do
   conf <- ask
   case (_env_conn conf) of
-    Just conn -> do
-      -- insert items
-      stmt <- liftIO $ prepare conn ((insStmt $ head items) (_dptchr_tableName dispatcher))
-      liftIO $ executeMany stmt values --   $ map toSqlValues items
-      liftIO $ commit conn
     Nothing -> return ()
-  where
-    insStmt (MkScrapedItem i) = insertStmt i
+    Just conn -> do
+      case (Map.lookup (hdbcDriverName conn) $ _dptchr_insertItemStmt dispatcher) of
+        Nothing -> do
+          L.log L.Error $
+            "Could not find the SQL statement for inserting \"" ++
+            _dptchr_itemName dispatcher ++
+            "\" into the \"" ++
+            hdbcDriverName conn ++ "\" database"
+        Just stmt' -> do
+          -- insert items
+          stmt <- liftIO $ prepare conn $ stmt' -- ((insStmt $ head items) (_dptchr_tableName dispatcher))
+          liftIO $ executeMany stmt values --   $ map toSqlValues items
+          liftIO $ commit conn
+  -- where
+  --   insStmt (MkScrapedItem i) = insertStmt i
 
 
 -- | Insert URLs into the SQL database.

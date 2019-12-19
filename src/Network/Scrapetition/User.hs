@@ -11,10 +11,12 @@ import Database.HDBC
 import Data.Maybe
 import Data.Time
 import qualified Data.Text as T
+import qualified Data.Map as Map
 
 import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Sql
+import Network.Scrapetition.Env
 
 
 -- * Data type for users.
@@ -76,10 +78,13 @@ userIdentifier domain = identifier "/user/" domain Nothing
 -- * HDBC
 
 -- | Prepares the insert statement.
-userInsertStmt :: String            -- ^ table name
-                  -> String
-userInsertStmt tName =
-  "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?)"
+userInsertStmt :: Map.Map String String
+userInsertStmt = Map.fromList
+  [ (sqlite3Drv, "INSERT OR IGNORE INTO user " ++ ever)
+  , (pgDrv, "INSERT INTO user " ++ ever ++ " ON CONFLICT DO NOTHING")
+  ]
+  where
+    ever = "(\"user\", domain, name, url_id, scraper) VALUES (?, ?, ?, (SELECT url_id FROM url WHERE url = ?), ?)"
 
 userToSql :: User -> [SqlValue]
 userToSql (User usr name url scrD scr) =
@@ -87,13 +92,11 @@ userToSql (User usr name url scrD scr) =
   , toSql $ fromMaybe "UNKNOWN" $ domainT url
   , toSql name
   , toSql url
-  , toSql scrD
   , toSql scr
   ]
 
 instance ToSqlValues User where
   toSqlValues = userToSql
-  insertStmt _ = userInsertStmt
 
 
 -- * SQL Strings 
@@ -102,10 +105,13 @@ instance ToSqlValues User where
 createUserTable :: String -> String
 createUserTable tName =
   "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
+  "user_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" ++
   "user TEXT,\n" ++
   "domain TEXT,\n" ++
   "name TEXT,\n" ++
-  "url TEXT,\n" ++
-  "scrape_date TEXT,\n" ++
+  "url_id INTEGER NOT NULL REFERENCES url(url_id),\n" ++
+  "-- time when first/last found this url on a scraped page:\n" ++
+  "first_scraped timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" ++
+  "last_scraped  timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" ++
   "scraper TEXT,\n" ++
-  "PRIMARY KEY (user, domain))\n"
+  "CONSTRAINT unique_in_domain UNIQUE (user, domain))\n"

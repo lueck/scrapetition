@@ -5,6 +5,7 @@ module Network.Scrapetition.Scrapers.Generic where
 
 import Text.HTML.Scalpel
 import qualified Data.Text as T
+import qualified Data.Map as Map
 
 import Network.Scrapetition.Env
 import Network.Scrapetition.Dispatcher
@@ -36,7 +37,7 @@ urlsCollectingDispatcher = Dispatcher
   { _dptchr_urlScheme = ".*"
   , _dptchr_scraper = packedEmpty
   , _dptchr_urlScraper = links
-  , _dptchr_insertItemStmt = id
-  , _dptchr_tableName = ""
+  , _dptchr_insertItemStmt = Map.empty
+  , _dptchr_itemName = "no item (just urls)"
   }
 

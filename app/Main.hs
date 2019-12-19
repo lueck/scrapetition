@@ -184,10 +184,10 @@ run opts@(Opts url _ _ _ _ Raw _ _ _ _) = do
 
 prepareSqlite :: DB.IConnection conn => Opts -> conn -> IO ()
 prepareSqlite opts conn = do
-  DB.run conn (createCommentTable "comments") []
-  DB.run conn (createUserTable "users") []
-  DB.run conn (createUserTable "voters") []
-  DB.run conn (createVotingTable "comments" "voters" "comment_voting") []
+  DB.run conn (createCommentTable "comment") []
+  DB.run conn (createUserTable "user") []
+  -- DB.run conn (createUserTable "voter") []
+  DB.run conn (createVotingTable "comment" "user" "comment_voting") []
   DB.run conn (createUrlTableSqlite "url") []
   DB.run conn (createUrlSourceTableSqlite "url_scraped") []
   DB.commit conn

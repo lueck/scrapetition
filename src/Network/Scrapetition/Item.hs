@@ -36,7 +36,6 @@ class ThreadItem i where
 
 class ToSqlValues i where
   toSqlValues :: i -> [SqlValue]
-  insertStmt :: i -> (String -> String)
 
 
 
