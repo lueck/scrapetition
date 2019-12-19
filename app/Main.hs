@@ -22,6 +22,8 @@ import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Dispatcher
+import Network.Scrapetition.URL
+import Network.Scrapetition.Sql
 import Network.Scrapetition.Scrapers.Generic
 
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe
@@ -123,11 +125,15 @@ evalOpts opts@(Opts url follow cross lifo scrapper _ logfile itemTab userTab vot
     , _env_startDomain = fromMaybe "unkown" $ domain $ Just url
     , _env_crossDomain = cross
     , _env_lifo = lifo
+    , _env_insertUrlStmt = urlInsertStmt
+    , _env_insertUrlSourceStmt = urlSourceInsertStmt
+    , _env_updateUrlSeenDateStmt = urlSeenDateUpdateStmt
     }
   where
     followLinkDispatchers True = [urlsCollectingDispatcher]
     followLinkDispatchers False = []
     genDispatchers ZeitDeComments = ZeitDe.zeitDeDispatchers
+    genDispatchers _ = []
 
 
 getLogger :: Maybe String -> IO Handle
@@ -154,15 +160,17 @@ run :: Opts -> IO ()
 run opts@(Opts url _ _ _ _ (SQLite fname) _ _ _ _) = do
   env <- evalOpts opts
   conn <- Sqlite3.connectSqlite3 fname
-  prepareSql opts conn
-  cs <- runReaderT (runScrapers [url] []) (env & env_conn .~ (Just (conn::Sqlite3.Connection)))
+  prepareSqlite opts conn
+  cs <- flip runReaderT (env & env_conn .~ (Just (conn::Sqlite3.Connection))) $ do
+    insertUrls [url]
+    runScrapers [url] []
   -- report env cs
   DB.disconnect conn
   closeLogger env
 run opts@(Opts url _ _ _ _ (Postgres connection) _ _ _ _) = do
   env <- evalOpts opts
   conn <- PostgreSQL.connectPostgreSQL connection
-  prepareSql opts conn
+  -- prepareSql opts conn
   cs <- runReaderT (runScrapers [url] []) (env & env_conn .~ (Just (conn::PostgreSQL.Connection)))
   -- report env cs
   DB.disconnect conn
@@ -174,12 +182,14 @@ run opts@(Opts url _ _ _ _ Raw _ _ _ _) = do
   -- report env cs
   closeLogger env
 
-prepareSql :: DB.IConnection conn => Opts -> conn -> IO ()
-prepareSql opts conn = do
+prepareSqlite :: DB.IConnection conn => Opts -> conn -> IO ()
+prepareSqlite opts conn = do
   DB.run conn (createCommentTable "comments") []
   DB.run conn (createUserTable "users") []
   DB.run conn (createUserTable "voters") []
   DB.run conn (createVotingTable "comments" "voters" "comment_voting") []
+  DB.run conn (createUrlTableSqlite "url") []
+  DB.run conn (createUrlSourceTableSqlite "url_scraped") []
   DB.commit conn
 
 -- report :: (Item i) => Env c i -> [i] -> IO ()

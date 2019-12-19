@@ -37,17 +37,19 @@ runScrapers urls seen = do
   appString <- getAppString
   case maybeNext of
     Nothing -> do
-      L.log "All URLs seen."
+      L.log L.Info "All URLs seen."
       return ()
     Just next -> do
-      L.log $ (show $ length urls) ++ " URLs left to scrape."
-      L.log $ "Scraping " ++ next
+      L.log L.Info $ (show $ length urls) ++ " URLs left to scrape."
+      L.log L.Info $ "Scraping " ++ next
       body <- liftIO $ getUrl next
+      updateUrlSeenDate next -- fork thread
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next body)
       let startDomain = Just $ _env_startDomain conf
-          newUrls' = nub $ if (_env_crossDomain conf)
+          newUrls' = nub $
+            if (_env_crossDomain conf)
             then (map (mkAbsolute next) $ concat newUrls)
             else (filter ((==startDomain) . domain . Just) $
                   map (mkAbsolute next) $ concat newUrls)
@@ -70,14 +72,16 @@ scrape :: (DB.IConnection c) =>
 scrape urls seen url body dispatcher = do
   let items = scrapeStringLike body (_dptchr_scraper dispatcher)
       newUrls' = scrapeStringLike body (_dptchr_urlScraper dispatcher)
-  let newUrls = map (mkAbsolute url) $ fromMaybe [] newUrls'
+  let newUrls = nub $ map (mkAbsolute url) $ fromMaybe [] newUrls'
   appString <- getAppString
   now <- liftIO getCurrentTime
   let items' = fromMaybe [] items
-  L.log $ "Found " ++ (show $ length items') ++ " items, and "
+  L.log L.Info $ "Found " ++ (show $ length items') ++ " items, and "
     ++ (show $ length newUrls) ++ " URLs."
+  insertUrls newUrls            -- not to be done in forked thread
+  insertScrapedUrls url newUrls -- fork thread
   insertScrapedItems dispatcher items' $
-    map (unpackToSql appString now) items'
+    map (unpackToSql appString now) items' -- fork thread
   return newUrls
   where
     unpackToSql appString now (MkScrapedItem i) =

@@ -8,7 +8,10 @@ import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
 
 
-log :: String -> App c ()
-log mesg = do
+data LogLevel = Info | Warning | Error
+
+
+log :: LogLevel -> String -> App c ()
+log level mesg = do
   env <- ask
   liftIO $ hPutStrLn (_env_logger env) mesg

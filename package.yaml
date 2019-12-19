@@ -22,22 +22,22 @@ description:         Please see the README on GitHub at <https://github.com/luec
 
 dependencies:
 - base >= 4.7 && < 5
+- scalpel
+- split
+- lens
+- network-uri
+- hashmap
+- HDBC
+- mtl
+- time
+- regex-tdfa
+- http-conduit
+- bytestring
+- text
+- containers
 
 library:
   source-dirs: src
-  dependencies:
-  - scalpel
-  - split
-  - lens
-  - network-uri
-  - hashmap
-  - HDBC
-  - mtl
-  - time
-  - regex-tdfa
-  - http-conduit
-  - bytestring
-  - text
                  
 executables:
   scrapetition:
@@ -49,17 +49,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - scrapetition
-    - scalpel
-    - split
-    - lens
-    - network-uri
-    - hashmap
-    - HDBC
-    - mtl
-    - time
-    - regex-tdfa
-    - http-conduit
-    - text
     - HDBC-sqlite3
     - HDBC-postgresql
     - optparse-applicative
@@ -76,14 +65,3 @@ tests:
     dependencies:
     - scrapetition
     - HTF
-    - scalpel
-    - split
-    - lens
-    - network-uri
-    - hashmap
-    - time
-    - HDBC
-    - mtl
-    - http-conduit
-    - text
-    - regex-tdfa

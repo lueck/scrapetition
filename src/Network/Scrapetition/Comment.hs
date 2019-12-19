@@ -75,6 +75,12 @@ commentInsertStmt :: String            -- ^ table name
 commentInsertStmt tName =
   "INSERT OR IGNORE INTO " ++ tName ++ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
+commentInsertStmtPG tName =
+  "INSERT INTO " ++ tName ++
+  " (id, domain, text, title, \"user\", name, date, parent, thread, up_votes, down_votes, url_id, first_scraped, scraper)" ++
+  " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT url_id FROM url WHERE url = ?), ?, ?)" ++
+  " ON CONFLICT DO NOTHING"
+
 commentToSql :: Comment -> [SqlValue]
 commentToSql (Comment txt tit usr name dateInf date id_ parent thread upVotes downVotes url scrD scr) =
   [ toSql id_
