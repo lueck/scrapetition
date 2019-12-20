@@ -57,7 +57,6 @@ createUrlSourceTableSqlite tableName =
   "CREATE TABLE IF NOT EXISTS " ++ tableName ++ " (\n" ++
   "source INTEGER NOT NULL REFERENCES url(url_id),\n" ++
   "target INTEGER NOT NULL REFERENCES url(url_id),\n" ++
-  "scrape_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" ++
   "-- time when first/last found this url on a scraped page:\n" ++
   "first_scraped timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" ++
   "last_scraped  timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" ++

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4256121f77a3cb64b8a3c6495308d9d5a602c018bf42a4a4f95f826d13474b1b
+-- hash: a9cac04816b18ebb2bb63ff0db5c102d371c47ac68a3ba898e6997a095fafca2
 
 name:           scrapetition
 version:        0.1.0.0
@@ -50,6 +50,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , forkable-monad
     , hashmap
     , http-conduit
     , lens
@@ -76,6 +77,7 @@ executable scrapetition
     , base >=4.7 && <5
     , bytestring
     , containers
+    , forkable-monad
     , hashmap
     , http-conduit
     , lens
@@ -106,6 +108,7 @@ test-suite scrapetition-test
     , base >=4.7 && <5
     , bytestring
     , containers
+    , forkable-monad
     , hashmap
     , http-conduit
     , lens

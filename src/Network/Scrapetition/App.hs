@@ -1,7 +1,8 @@
 module Network.Scrapetition.App
   where
 
-import Control.Concurrent
+import Control.Concurrent hiding (forkIO)
+import Control.Concurrent.Forkable (forkIO)
 import Text.HTML.Scalpel hiding (scrape)
 import Data.Maybe
 import Control.Lens
@@ -43,7 +44,7 @@ runScrapers urls seen = do
       L.log L.Info $ (show $ length urls) ++ " URLs left to scrape."
       L.log L.Info $ "Scraping " ++ next
       body <- liftIO $ getUrl next
-      updateUrlSeenDate next -- fork thread
+      forkIO $ updateUrlSeenDate next -- fork thread
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next body)
@@ -79,8 +80,8 @@ scrape urls seen url body dispatcher = do
   L.log L.Info $ "Found " ++ (show $ length items') ++ " items, and "
     ++ (show $ length newUrls) ++ " URLs."
   insertUrls newUrls            -- not to be done in forked thread
-  insertScrapedUrls url newUrls -- fork thread
-  insertScrapedItems dispatcher items' $
+  forkIO $ insertScrapedUrls url newUrls -- fork thread
+  forkIO $ insertScrapedItems dispatcher items' $
     map (unpackToSql appString now) items' -- fork thread
   return newUrls
   where

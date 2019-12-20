@@ -35,6 +35,7 @@ dependencies:
 - bytestring
 - text
 - containers
+- forkable-monad
 
 library:
   source-dirs: src
