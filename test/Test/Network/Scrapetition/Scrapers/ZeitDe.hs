@@ -76,9 +76,9 @@ test_commentCommentJsLoaderUrls = do
     (Just 3)
     (fmap length urls)
 
-test_commentSectionUrls = do
+test_pagerUrls = do
   s <- T.readFile testfile
-  let urls = scrapeStringLike s commentSectionUrls
+  let urls = scrapeStringLike s pagerUrls
   assertEqual
     (Just 5)
     (fmap length urls)
@@ -101,20 +101,19 @@ test_collectCommentUrls = do
   s <- T.readFile testfile
   let urls = scrapeStringLike s collectCommentUrls
   assertEqual
-    (Just 9)
+    (Just 8)
     (fmap length urls)
 
 test_collectCommentUrlsUrls = do
   s <- T.readFile testfile
   let urls = scrapeStringLike s collectCommentUrls
   assertEqual
-    (Just ["https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377209#cid-50377129",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377186#cid-50377144",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377368#cid-50377152",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=2#comments",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=3#comments",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=4#comments",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=5#comments",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=35#comments",
-           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=2#comments"])
+    (Just ["https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377209",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377186",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?cid=50377368",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=2",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=3",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=4",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=5",
+           "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=35"])
     urls

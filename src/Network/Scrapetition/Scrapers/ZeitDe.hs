@@ -12,6 +12,7 @@ import Data.Char
 import Control.Lens
 import Data.Maybe
 import qualified Data.Text as T
+import qualified Data.Map as Map
 
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Utils
@@ -24,6 +25,7 @@ import Network.Scrapetition.Scrapers.Generic
 
 
 -- | A dispatcher for scraping comments from www.zeit.de
+zeitDeCommentDispatcher :: Dispatcher
 zeitDeCommentDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = commentsPacked
@@ -33,32 +35,43 @@ zeitDeCommentDispatcher = Dispatcher
   }
 
 -- | A dispatcher for scraping authors of comments from www.zeit.de
+zeitDeUserDispatcher :: Dispatcher
 zeitDeUserDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = usersPacked
-  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_urlScraper = noUrls
   , _dptchr_insertItemStmt = userInsertStmt
   , _dptchr_itemName = "user"
   }
 
 -- | A dispatcher for scraping user IDs of votings from www.zeit.de
+zeitDeVoterDispatcher :: Dispatcher
 zeitDeVoterDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = votersPacked
-  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_urlScraper = noUrls
   , _dptchr_insertItemStmt = userInsertStmt
   , _dptchr_itemName = "voter" -- not users, so in future we can relate!
   }
 
 -- | A dispatcher for scraping user IDs of votings from www.zeit.de
+zeitDeVotingDispatcher :: Dispatcher
 zeitDeVotingDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = votingsPacked
-  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_urlScraper = noUrls
   , _dptchr_insertItemStmt = voteInsertStmt
   , _dptchr_itemName = "comment_voting"
   }
 
+zeitDeProfileDispatcher :: Dispatcher
+zeitDeProfileDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?profile.zeit.de.*"
+  , _dptchr_scraper = packedEmpty
+  , _dptchr_urlScraper = collectProfileUrls
+  , _dptchr_insertItemStmt = Map.empty
+  , _dptchr_itemName = "urls"
+  }
 
 zeitDeDispatchers :: [Dispatcher]
 zeitDeDispatchers =
@@ -66,19 +79,8 @@ zeitDeDispatchers =
   , zeitDeCommentDispatcher
   , zeitDeVoterDispatcher
   , zeitDeVotingDispatcher
+  , zeitDeProfileDispatcher
   ]
-
--- | Generate a unique identifier for a comment. For zeit.de this is
--- the domain name concatenated with an comment ID.
-identifierZeitDe :: Maybe T.Text -> Comment -> T.Text
-identifierZeitDe = identifier' (Just "www.zeit.de")
-
-
--- | Scrape comments and a reasonable set of URLs.
-commentsThreadsAndNext :: Scraper T.Text ([Comment], [URL])
-commentsThreadsAndNext = (\cs urls -> (cs, urls))
-  <$> comments
-  <*> threadsAndNextUrl
 
 
 commentsPacked :: Scraper T.Text [ScrapedItem]
@@ -174,35 +176,54 @@ voters =
 
 -- | Collect URLs to further comments.
 collectCommentUrls :: Scraper T.Text [URL]
-collectCommentUrls = (\a b c -> concat [a, b, c])
+collectCommentUrls = (++)
   <$> commentJsLoaderUrls
-  <*> commentSectionUrls
-  <*> commentNextButtonUrl -- FIXME: can we use <+> or <> ???
+  <*> pagerUrls
 
 -- | Collect the URLs for completing the shown threads plus the next
--- page of comments.
+-- page of comments. This is not enough when we start in the middle of
+-- a discussion.
 threadsAndNextUrl :: Scraper T.Text [URL]
-threadsAndNextUrl = (\a b -> concat [a, b])
+threadsAndNextUrl = (++)
   <$> commentJsLoaderUrls
   <*> commentNextButtonUrl
 
 -- | Collect the URLs under the comments.
 commentJsLoaderUrls :: Scraper T.Text [URL]
 commentJsLoaderUrls =
-  chroots ("div" @: [hasClass "js-comment-loader"]) link
+  chroots ("div" @: [hasClass "js-comment-loader"]) (fmap dropFragment link)
 
 
--- | Collect the URL from the next button in the footer.
+-- | Collect the URL from the next button in the footer. Caveat: This
+-- is not enough when we jump into the middle of a discussion
+-- e.g. from a user profile. Use 'pagerUrls' instead!
 commentNextButtonUrl :: Scraper T.Text [URL]
 commentNextButtonUrl =
   chroots ("div" @: [hasClass "comment-section__item"] //
            "a" @: [hasClass "pager__button--next"]) link
 
+-- | Collect the URLs from a pager.
+pagerUrls :: Scraper T.Text [URL]
+pagerUrls =
+  chroots ("ul" @: [hasClass "pager__pages"] //
+           "li" @: [hasClass "pager__page"]) (fmap dropFragment link)
 
--- | Collect the URLs from the pager in the footer.
-commentSectionUrls :: Scraper T.Text [URL]
-commentSectionUrls =
-  chroots ("div" @: [hasClass "comment-section__item"] // "li") link
+-- | URLs from the user profile. We only scrape URLs. There is a lack
+-- of information on the comments there: no parent ID e.g.
+collectProfileUrls :: Scraper T.Text [URL]
+collectProfileUrls = (++)
+  <$> profileDiscussionUrls
+  <*> pagerUrls
+
+-- | Scrape a link to a discussion item.
+profileDiscussionUrls :: Scraper T.Text [URL]
+profileDiscussionUrls =
+  chroots ("article" @: [hasClass "user-comment"]) discussionUrl
+
+discussionUrl :: Scraper T.Text URL
+discussionUrl =
+  fmap (dropFragment . T.unpack) $
+  attr "href" $ "a" @: [hasClass "user-comment__link"]
 
 
 -- * Pure helper functions
@@ -229,6 +250,11 @@ fragmentOrUrl s
   | otherwise = s
   where
     broken = T.splitOn "#" s
+
+-- | Drop the fragment identifier from the given url.
+dropFragment :: URL -> URL
+dropFragment = takeWhile (/='#')
+
 
 
 -- * This should only be used for development:
