@@ -44,7 +44,7 @@ runScrapers urls seen = do
       L.log L.Info $ (show $ length urls) ++ " URLs left to scrape."
       L.log L.Info $ "Scraping " ++ next
       body <- liftIO $ getUrl next
-      forkIO $ updateUrlSeenDate next -- fork thread
+      updateUrlSeenDate next -- fork thread
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next body)
@@ -80,8 +80,8 @@ scrape urls seen url body dispatcher = do
   L.log L.Info $ "Found " ++ (show $ length items') ++ " items, and "
     ++ (show $ length newUrls) ++ " URLs."
   insertUrls newUrls            -- not to be done in forked thread
-  forkIO $ insertScrapedUrls url newUrls -- fork thread
-  forkIO $ insertScrapedItems dispatcher items' $
+  insertScrapedUrls url newUrls -- fork thread
+  insertScrapedItems dispatcher items' $
     map (unpackToSql appString now) items' -- fork thread
   return newUrls
   where

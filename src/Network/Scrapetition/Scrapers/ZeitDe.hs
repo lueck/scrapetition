@@ -97,7 +97,9 @@ comment = Comment
        <|> (pure Nothing))      -- title: take #x.y as title, U+8212 is a em-dash
   <*> ((fmap (T.stripPrefix userPrefix) $ attr "href" $
         "div" @: [hasClass "comment-meta__name"] // "a")
-       <|> (pure Nothing))
+       <|> (pure Nothing)) -- FIXME: Should we use the user name
+                           -- instead? I think no, because the absence
+                           -- of an identifier is an information.
   <*> ((fmap Just $ text $ "div" @: [hasClass "comment-meta__name"] // "a")
        <|> (fmap (Just . T.strip) $
             text $ "div" @: [hasClass "comment-meta__name"]))

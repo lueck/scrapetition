@@ -171,7 +171,9 @@ run opts@(Opts url _ _ _ _ (Postgres connection) _ _ _ _) = do
   env <- evalOpts opts
   conn <- PostgreSQL.connectPostgreSQL connection
   -- prepareSql opts conn
-  cs <- runReaderT (runScrapers [url] []) (env & env_conn .~ (Just (conn::PostgreSQL.Connection)))
+  cs <- flip runReaderT (env & env_conn .~ (Just (conn::PostgreSQL.Connection))) $ do
+    insertUrls [url]
+    runScrapers [url] []
   -- report env cs
   DB.disconnect conn
   closeLogger env

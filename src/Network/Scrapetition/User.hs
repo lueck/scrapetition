@@ -81,7 +81,7 @@ userIdentifier domain = identifier "/user/" domain Nothing
 userInsertStmt :: Map.Map String String
 userInsertStmt = Map.fromList
   [ (sqlite3Drv, "INSERT OR IGNORE INTO user " ++ ever)
-  , (pgDrv, "INSERT INTO user " ++ ever ++ " ON CONFLICT DO NOTHING")
+  , (pgDrv, "INSERT INTO \"user\" " ++ ever ++ " ON CONFLICT DO NOTHING")
   ]
   where
     ever = "(\"user\", domain, name, url_id, scraper) VALUES (?, ?, ?, (SELECT url_id FROM url WHERE url = ?), ?)"
@@ -106,8 +106,8 @@ createUserTable :: String -> String
 createUserTable tName =
   "CREATE TABLE IF NOT EXISTS " ++ tName ++ " (\n" ++
   "user_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" ++
-  "user TEXT,\n" ++
-  "domain TEXT,\n" ++
+  "user TEXT NOT NULL,\n" ++
+  "domain TEXT NOT NULL,\n" ++
   "name TEXT,\n" ++
   "url_id INTEGER NOT NULL REFERENCES url(url_id),\n" ++
   "-- time when first/last found this url on a scraped page:\n" ++
