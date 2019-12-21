@@ -25,6 +25,8 @@ data Env c = Env
     -- VALUES (?, ?)@.
   , _env_updateUrlSeenDateStmt :: Map.Map String String
   , _env_selectUrlSeenStmt :: Map.Map String String
+  , _env_selectUrlNotSeenStmt :: Map.Map String String
+  , _env_selectUrlWhereStmt :: Map.Map String String
   }
 
 makeLenses ''Env

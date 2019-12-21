@@ -66,7 +66,7 @@ URL                      An URL to start with.
 --voting-table VOTINGTABLE
                          Table name for voting by users about
                          items. (default: "comment_voting")
-
+```
 <!-- END USAGE -->
 
 So the following scrapes an URL with the scraper for comments on

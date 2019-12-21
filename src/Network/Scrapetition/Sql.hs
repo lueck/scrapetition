@@ -6,6 +6,7 @@ import Control.Monad
 import Control.Monad.Reader
 import Text.HTML.Scalpel (URL)
 import qualified Data.Map as Map
+import Data.Maybe
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
@@ -101,23 +102,40 @@ insertScrapedUrls seenUrl urls = do
           liftIO $ commit conn
 
 
--- | Get scraped URLs from database.
-selectUrlsSeen :: (IConnection c) =>
-                     App c ([URL])
-selectUrlsSeen = do
+-- | Get URLs from database that were already visited.
+selectUrlsSeen :: (IConnection c) => App c ([URL])
+selectUrlsSeen = selectUrls (_env_selectUrlSeenStmt) Nothing []
+
+-- | Get URLs from database that were never visited.
+selectUrlsNotSeen :: (IConnection c) => App c ([URL])
+selectUrlsNotSeen = selectUrls (_env_selectUrlNotSeenStmt) Nothing []
+
+-- | Select URLs from database based on a flexible WHERE clause.
+selectUrlsWhere :: (IConnection c) =>
+                   String       -- ^ WHERE clause
+                -> App c ([URL])
+selectUrlsWhere whereClause = selectUrls (_env_selectUrlWhereStmt) (Just whereClause) []
+
+
+-- | Generic function to get URLs from database.
+selectUrls :: (IConnection c) =>
+              (Env c -> Map.Map String String) -- ^ the getter for the select statement
+           -> Maybe String -- ^ Suffix (WHERE clause) to be appended to the select statement
+           -> [SqlValue] -- ^ sql values to insert into the select statement
+           -> App c ([URL])
+selectUrls stmtGetter whereClause vals = do
   conf <- ask
   case (_env_conn conf) of
     Nothing -> return []
     Just conn -> do
-      case (Map.lookup (hdbcDriverName conn) $ _env_selectUrlSeenStmt conf) of
+      case (Map.lookup (hdbcDriverName conn) $ stmtGetter conf) of
         Nothing -> do
           L.log L.Error $
             "Could not find SQL statement for selecting scraped URLs from the " ++
             hdbcDriverName conn ++ " database"
           return []
         Just stmt' -> do
-          -- stmt <- liftIO $ prepare conn stmt'
-          urls <- liftIO $ quickQuery conn stmt' []
+          urls <- liftIO $ quickQuery conn (stmt' ++ fromMaybe "" whereClause) vals
           return $ map convRow urls
             where
               convRow :: [SqlValue] -> URL

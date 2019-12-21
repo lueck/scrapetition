@@ -33,6 +33,24 @@ urlSeenSelectStmt = Map.fromList
   where
     ever = "SELECT url FROM url WHERE first_seen IS NOT NULL"
 
+-- | Select the URLs never seen (visited) so far.
+urlNotSeenSelectStmt :: Map.Map String String
+urlNotSeenSelectStmt = Map.fromList
+  [ (sqlite3Drv, ever)
+  , (pgDrv, ever)
+  ]
+  where
+    ever = "SELECT url FROM url WHERE first_seen IS NULL"
+
+-- | Select the URLs with WHERE clause. There is no 'SqlValue' here to
+-- be inserted, but the where clause has to be appended as a string.
+urlSelectWhereStmt :: Map.Map String String
+urlSelectWhereStmt = Map.fromList
+  [ (sqlite3Drv, ever)
+  , (pgDrv, ever)
+  ]
+  where
+    ever = "SELECT url FROM url WHERE "
 
 -- | Insert the source of a scraped url into the url_scraped table.
 urlSourceInsertStmt :: Map.Map String String
