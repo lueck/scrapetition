@@ -34,6 +34,7 @@ data Opts = Opts
   { url :: String
   , followLinks :: Bool
   , crossDomain :: Bool
+  , visitAgain :: Bool
   , lifo :: Bool
   , scraper :: ScraperSelector
   , output :: OutputMethod
@@ -66,6 +67,9 @@ opts_ = Opts
   <*> switch (long "cross-domain"
               <> short 'x'
               <> help "Follow links pointing outside of the domain of the start URL.")
+  <*> switch (long "visit-again"
+              <> short 'a'
+              <> help "Visit URLs again. If this is not set, all already seen URLs stored in the database are treated as seen URLs and not scraped again.")
   <*> switch (long "lifo"
               <> short 'l'
               <> help "Last in, first out handling of URLs: With this switch the last found URL is scraped first. By default, the first found URL is scraped first.")
@@ -115,7 +119,7 @@ opts_ = Opts
 -- scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
 
 -- evalOpts :: Opts -> Env c i
-evalOpts opts@(Opts url follow cross lifo scrapper _ logfile itemTab userTab votingTab) = do
+evalOpts opts@(Opts url follow cross _ lifo scrapper _ logfile itemTab userTab votingTab) = do
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
@@ -128,6 +132,7 @@ evalOpts opts@(Opts url follow cross lifo scrapper _ logfile itemTab userTab vot
     , _env_insertUrlStmt = urlInsertStmt
     , _env_insertUrlSourceStmt = urlSourceInsertStmt
     , _env_updateUrlSeenDateStmt = urlSeenDateUpdateStmt
+    , _env_selectUrlSeenStmt = urlSeenSelectStmt
     }
   where
     followLinkDispatchers True = [urlsCollectingDispatcher]
@@ -157,27 +162,29 @@ main = execParser opts >>= run
 
 -- | Evaluate commandline options and run the scraper.
 run :: Opts -> IO ()
-run opts@(Opts url _ _ _ _ (SQLite fname) _ _ _ _) = do
+run opts@(Opts url _ _ again _ _ (SQLite fname) _ _ _ _) = do
   env <- evalOpts opts
   conn <- Sqlite3.connectSqlite3 fname
   prepareSqlite opts conn
   cs <- flip runReaderT (env & env_conn .~ (Just (conn::Sqlite3.Connection))) $ do
+    seen <- selectUrlsSeen
     insertUrls [url]
-    runScrapers [url] []
+    runScrapers [url] (if again then [] else seen)
   -- report env cs
   DB.disconnect conn
   closeLogger env
-run opts@(Opts url _ _ _ _ (Postgres connection) _ _ _ _) = do
+run opts@(Opts url _ _ again _ _ (Postgres connection) _ _ _ _) = do
   env <- evalOpts opts
   conn <- PostgreSQL.connectPostgreSQL connection
   -- prepareSql opts conn
   cs <- flip runReaderT (env & env_conn .~ (Just (conn::PostgreSQL.Connection))) $ do
+    seen <- selectUrlsSeen
     insertUrls [url]
-    runScrapers [url] []
+    runScrapers [url] (if again then [] else seen)
   -- report env cs
   DB.disconnect conn
   closeLogger env
-run opts@(Opts url _ _ _ _ Raw _ _ _ _) = do
+run opts@(Opts url _ _ _ _ _ Raw _ _ _ _) = do
   env <- evalOpts opts
   cs <- runReaderT (runScrapers [url] []) env
   -- print cs

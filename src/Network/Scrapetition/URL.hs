@@ -24,6 +24,16 @@ urlSeenDateUpdateStmt = Map.fromList
     ever =
       "UPDATE url SET (first_seen, last_seen) = (coalesce(first_seen, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP) WHERE url = ?"
 
+-- | Select the URLs already seen (visited).
+urlSeenSelectStmt :: Map.Map String String
+urlSeenSelectStmt = Map.fromList
+  [ (sqlite3Drv, ever)
+  , (pgDrv, ever)
+  ]
+  where
+    ever = "SELECT url FROM url WHERE first_seen IS NOT NULL"
+
+
 -- | Insert the source of a scraped url into the url_scraped table.
 urlSourceInsertStmt :: Map.Map String String
 urlSourceInsertStmt = Map.fromList

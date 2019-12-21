@@ -24,6 +24,7 @@ data Env c = Env
     -- ^ HDBC insert statement for URLs. E.g. @INSERT INO url_source
     -- VALUES (?, ?)@.
   , _env_updateUrlSeenDateStmt :: Map.Map String String
+  , _env_selectUrlSeenStmt :: Map.Map String String
   }
 
 makeLenses ''Env

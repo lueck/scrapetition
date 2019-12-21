@@ -99,3 +99,27 @@ insertScrapedUrls seenUrl urls = do
           stmt <- liftIO $ prepare conn stmt'
           liftIO $ executeMany stmt $ map (\url -> [toSql seenUrl, toSql url]) urls
           liftIO $ commit conn
+
+
+-- | Get scraped URLs from database.
+selectUrlsSeen :: (IConnection c) =>
+                     App c ([URL])
+selectUrlsSeen = do
+  conf <- ask
+  case (_env_conn conf) of
+    Nothing -> return []
+    Just conn -> do
+      case (Map.lookup (hdbcDriverName conn) $ _env_selectUrlSeenStmt conf) of
+        Nothing -> do
+          L.log L.Error $
+            "Could not find SQL statement for selecting scraped URLs from the " ++
+            hdbcDriverName conn ++ " database"
+          return []
+        Just stmt' -> do
+          -- stmt <- liftIO $ prepare conn stmt'
+          urls <- liftIO $ quickQuery conn stmt' []
+          return $ map convRow urls
+            where
+              convRow :: [SqlValue] -> URL
+              convRow (x:[]) = (fromSql x) :: URL
+              convRow x = fail $ "Unexpected result: " ++ show x
