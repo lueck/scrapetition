@@ -105,29 +105,35 @@ comments = chroots ("article" @: [hasClass "comment"]) comment
 -- | Scrape a single comment given in scalpel's chroot.
 comment :: Scraper T.Text Comment
 comment = Comment
-  <$> (fmap T.strip $ innerHTML $ "div" @: [hasClass "comment__body"])
+  <$> (fmap T.strip $ innerHTML $ "div" @: [hasClass "comment__body"]) -- comment
   <*> ((fmap (Just . T.strip . (T.takeWhile ((/=8212) . ord))) $
         text $ "a" @: [hasClass "comment-meta__date"])
        <|> (pure Nothing))      -- title: take #x.y as title, U+8212 is a em-dash
   <*> ((fmap (T.stripPrefix userPrefix) $ attr "href" $
-        "div" @: [hasClass "comment-meta__name"] // "a")
+        -- CHANGE: "div" to "h4" on 2020-01-08, so we use AnyTag
+        AnyTag @: [hasClass "comment-meta__name"] // "a")
        <|> (pure Nothing)) -- FIXME: Should we use the user name
                            -- instead? I think no, because the absence
                            -- of an identifier is an information.
-  <*> ((fmap Just $ text $ "div" @: [hasClass "comment-meta__name"] // "a")
+  <*> ((fmap Just $ text $ AnyTag @: [hasClass "comment-meta__name"] // "a")
        <|> (fmap (Just . T.strip) $
-            text $ "div" @: [hasClass "comment-meta__name"]))
+            text $ AnyTag @: [hasClass "comment-meta__name"]))
   <*> ((fmap (Just . T.strip . (T.dropWhile ((==8212) . ord)) . (T.dropWhile ((/=8212) . ord))) $
         text $ "a" @: [hasClass "comment-meta__date"])
        <|> (pure Nothing))      -- informal datetime
   <*> (pure Nothing)            -- no formal datetime
   <*> (attr "id" $ "article")   -- ID
   <*> ((fmap (Just . fragmentOrUrl) $ attr "href" $ "a" @: [hasClass "comment__origin"])
-        <|> (pure Nothing))     -- comment__origin is parent! Verified!
+       <|> -- CHANGE: form instead of link on 2020-01-08
+       (fmap (Just . (\t -> "cid-"<>t)) $ attr "value" $
+        "input" @: [match (\k v -> k=="name" && v=="cid")])
+       <|>
+       (pure Nothing))     -- comment__origin is parent! Verified!
   <*> (pure Nothing)            -- No thread id available! Verified!
   <*> (fmap (Just . countOfFans) $
        attr "data-fans" $
-       "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]) -- up votes
+       -- CHANGE: link to form on 2020-01-08
+       AnyTag @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]) -- up votes
   <*> (pure Nothing)            -- down votes
   <*> ((fmap (Just . (T.takeWhile (/='?'))) $
         attr "href" $ "a" @: [hasClass "comment-meta__date"])
@@ -173,7 +179,8 @@ votingNumbers :: Scraper T.Text [T.Text]
 votingNumbers =
   fmap (T.splitOn ",") $
   attr "data-fans" $
-  "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]
+  -- CHANGE: link to form on 2020-01-08
+  AnyTag @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]
 
 commentAndVotingNumbers :: Scraper T.Text (Comment, [T.Text])
 commentAndVotingNumbers = (,)

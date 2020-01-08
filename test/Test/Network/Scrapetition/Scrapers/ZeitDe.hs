@@ -10,7 +10,7 @@ import qualified Data.Text.IO as T
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Scrapers.ZeitDe
 
-testfile = "test/examples/zeit.de.html"
+testfile = "test/examples/zeit.de.article.html"
 
 testurl = "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache/komplettansicht"
 
@@ -34,7 +34,8 @@ test_commentUser = do
   let cs = scrapeStringLike s comments
   assertEqual
     (Just [Just "3096219", Just "5786217", Just "2831850", Nothing,
-           Just "5119426", Just "5775461", Just "6415870", Just "2777961"])
+           --Just "5119426", Just "5775461", Just "6415870", Just "2777961"])
+           Just "5119426", Nothing, Nothing, Just "2777961"])
     (fmap (map _comment_user) cs)
 
 test_commentId = do
