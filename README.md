@@ -2,8 +2,9 @@ Scrapetition
 ============
 
 Scrapetition is a type safe yet flexible web scraper written in
-Haskell. In gains flexibility by using type classes and can easily be
-extented by scalpel scrapers.
+Haskell. In gains flexibility by using type classes and GADTs and can
+easily be extented by scalpel scrapers. The scraped items are stored
+in an SQL database.
 
 Right now it has scrapers for
 
@@ -15,6 +16,11 @@ Right now it has scrapers for
 Scrapetition is written in the Haskell programming language. In order
 to install it, at least [Stack](https://docs.haskellstack.org/) is
 needed, Haskell's build tool.
+
+At least for building the commandline program, header files for
+[SQLite3](https://www.sqlite.org) and
+[PostgreSQL](https://www.postgresql.org) are required. The library
+can be build without these database engines.
 
 Once you have the Haskell Tool Stack installed clone this repository
 and execute the following command in the root directory:
@@ -93,7 +99,23 @@ Available options:
 So the following scrapes an URL with the scraper for comments on
 www.zeit.de:
 
-	scrapetition <URL>
+	scrapetition -u <URL> --wwwZeitDe-comments
+
+## Hacking
+
+If you want to add a new type of record that you want to scrape from
+the web, all you have to do is:
+
+- write the record constructor (an ADT)
+- make it an instance of `HasMeta`
+- make it an instance of `ToSqlValues`
+- wrap it into the GADT `ScrapedItem` after scraping
+- write a function for inserting the record into the database
+- write your scraper using scalpel
+- pass information for which URLs the scraper is to be used and the
+  name of the insertion function to the dispatcher
+
+See `Comment.hs` and `ZeitDe.hs` for an example.
 
 ## License
 

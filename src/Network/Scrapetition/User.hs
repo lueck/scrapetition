@@ -44,11 +44,6 @@ instance HasMeta User where
   itemScraper u = _user_scraper u
   setItemScraper c scraper = c & user_scraper .~ scraper
 
-instance ThreadItem User where
-  itemParent c = Nothing
-  itemThread c = Nothing
-  setItemThread c _ = c
-
 
 -- | A type class. Every item, that has a user information, should
 -- implement this.

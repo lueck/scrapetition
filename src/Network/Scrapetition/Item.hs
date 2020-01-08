@@ -41,10 +41,10 @@ class ToSqlValues i where
 
 -- | 'ScrapedItem' is GADT wrapper for scraped item types. Wrapping is
 -- needed for defining dispatchers for scrapers for inhomogenous
--- types. Your scalpel scrapers' return types must be packed into this
+-- lists. Your scalpel scrapers' return types must be packed into this
 -- type.
 --
 -- Example: @yourScraperPacked = fmap (map MkScrapedItem) yourScraper
 data ScrapedItem
   where
-    MkScrapedItem :: (Item i, HasMeta i, ThreadItem i, ToSqlValues i) => i -> ScrapedItem
+    MkScrapedItem :: (HasMeta i, ToSqlValues i) => i -> ScrapedItem
