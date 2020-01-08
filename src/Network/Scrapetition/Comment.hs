@@ -85,7 +85,7 @@ commentInsertStmt = Map.fromList
   , (pgDrv, "INSERT INTO comment " ++ ever ++ " ON CONFLICT DO NOTHING")
   ]
   where
-    ever = "(id, domain, text, title, user_id, name, date_informal, date, parent, thread, up_votes, down_votes, article_id, article_voting, parent_voting, url_id, scraper) VALUES (?, ?, ?, ?, (SELECT user_id FROM \"user\" WHERE \"user\" = ? AND domain = ?), ?, ?, ?, ?, ?, ?, ?, (SELECT article_id FROM article WHERE canonical = ?), ?, ?, (SELECT url_id FROM url WHERE url = ?), ?)"
+    ever = "(id, domain, text, title, user_id, name, date_informal, date, parent, thread, up_votes, down_votes, article_id, article_voting, parent_voting, url_id, scraper) VALUES (?, ?, ?, ?, (SELECT user_id FROM \"user\" WHERE \"user\" = ? AND domain = ?), ?, ?, ?, ?, ?, ?, ?, (SELECT article_id FROM article LEFT JOIN url ON (canonical = url.url_id) WHERE url.url = ?), ?, ?, (SELECT url_id FROM url WHERE url = ?), ?)"
 
 commentToSql :: Comment -> [SqlValue]
 commentToSql (Comment txt tit usr name dateInf date id_ parent thread upVotes downVotes art artVote parentVote url scrD scr) =
