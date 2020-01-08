@@ -66,3 +66,6 @@ tests:
     dependencies:
     - scrapetition
     - HTF
+    - temporary
+    - directory
+    - HDBC-sqlite3
