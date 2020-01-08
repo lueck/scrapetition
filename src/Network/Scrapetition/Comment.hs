@@ -17,8 +17,8 @@ import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Sql
 import Network.Scrapetition.User
+import Network.Scrapetition.Article
 import Network.Scrapetition.Env
-
 
 -- * Data type for comments.
 
@@ -33,8 +33,11 @@ data Comment = Comment
   , _comment_id :: T.Text
   , _comment_parent :: Maybe T.Text
   , _comment_thread :: Maybe T.Text
-  , _comment_upVotes :: Maybe Int
-  , _comment_downVotes :: Maybe Int
+  , _comment_upVotes :: Maybe Int -- ^ up votes of this comment
+  , _comment_downVotes :: Maybe Int -- ^ down votes of this comment
+  , _comment_article :: Maybe T.Text -- ^ the URL of the article this comment refers to
+  , _comment_articleVoting :: Maybe Int -- ^ a voting of the article
+  , _comment_parentVoting :: Maybe Int  -- ^ a voting of the parent
   , _comment_url :: Maybe T.Text
   , _comment_scrapeDate :: Maybe UTCTime
   , _comment_scraper :: Maybe T.Text
@@ -64,6 +67,10 @@ instance HasUser Comment where
   itemName c = _comment_name c
 
 
+instance RefersToArticle Comment where
+  articleCanonicalUrl c = _comment_article c
+
+
 -- | Generate an identifier for a 'Comment'.
 commentIdentifier :: Maybe T.Text -> Maybe T.Text -> Comment -> T.Text
 commentIdentifier = identifier "/comment/"
@@ -78,10 +85,10 @@ commentInsertStmt = Map.fromList
   , (pgDrv, "INSERT INTO comment " ++ ever ++ " ON CONFLICT DO NOTHING")
   ]
   where
-    ever = "(id, domain, text, title, user_id, name, date_informal, date, parent, thread, up_votes, down_votes, url_id, scraper) VALUES (?, ?, ?, ?, (SELECT user_id FROM \"user\" WHERE \"user\" = ? AND domain = ?), ?, ?, ?, ?, ?, ?, ?, (SELECT url_id FROM url WHERE url = ?), ?)"
+    ever = "(id, domain, text, title, user_id, name, date_informal, date, parent, thread, up_votes, down_votes, article_id, article_voting, parent_voting, url_id, scraper) VALUES (?, ?, ?, ?, (SELECT user_id FROM \"user\" WHERE \"user\" = ? AND domain = ?), ?, ?, ?, ?, ?, ?, ?, (SELECT article_id FROM article WHERE canonical = ?), ?, ?, (SELECT url_id FROM url WHERE url = ?), ?)"
 
 commentToSql :: Comment -> [SqlValue]
-commentToSql (Comment txt tit usr name dateInf date id_ parent thread upVotes downVotes url scrD scr) =
+commentToSql (Comment txt tit usr name dateInf date id_ parent thread upVotes downVotes art artVote parentVote url scrD scr) =
   [ toSql id_
   , d
   , toSql txt
@@ -95,6 +102,9 @@ commentToSql (Comment txt tit usr name dateInf date id_ parent thread upVotes do
   , toSql thread
   , toSql upVotes
   , toSql downVotes
+  , toSql art
+  , toSql artVote
+  , toSql parentVote
   , toSql url
   , toSql scr
   ]
@@ -125,6 +135,9 @@ createCommentTable tName =
   "thread TEXT,\n" ++
   "up_votes TEXT,\n" ++
   "down_votes TEXT,\n" ++
+  "article_id INTEGER REFERENCES article(article_id),\n" ++
+  "article_voting INTEGER,\n" ++
+  "parent_voting INTEGER,\n" ++
   "url_id INTEGER NOT NULL REFERENCES url(url_id),\n" ++
   "-- time when first/last found this url on a scraped page:\n" ++
   "first_scraped timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" ++

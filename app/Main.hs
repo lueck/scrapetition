@@ -19,6 +19,7 @@ import Network.Scrapetition.Item
 import Network.Scrapetition.Comment
 import Network.Scrapetition.User
 import Network.Scrapetition.Vote
+import Network.Scrapetition.Article
 import Network.Scrapetition.Env
 import Network.Scrapetition.App
 import Network.Scrapetition.Utils
@@ -234,6 +235,7 @@ prepareSqlite opts conn = do
   DB.run conn (createVotingTable "comment" "user" "comment_voting") []
   DB.run conn (createUrlTableSqlite "url") []
   DB.run conn (createUrlSourceTableSqlite "url_scraped") []
+  DB.run conn (createArticleTableSqlite "article" "url") []
   DB.commit conn
 
 -- report :: (Item i) => Env c i -> [i] -> IO ()

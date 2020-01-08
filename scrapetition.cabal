@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a9cac04816b18ebb2bb63ff0db5c102d371c47ac68a3ba898e6997a095fafca2
+-- hash: d21fd639862b8f0f3f70f178fdf0b26cc7f77fe3570c739c2596b39462100884
 
 name:           scrapetition
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Network.Scrapetition.App
       Network.Scrapetition.AppType
+      Network.Scrapetition.Article
       Network.Scrapetition.Comment
       Network.Scrapetition.Dispatcher
       Network.Scrapetition.Env
@@ -97,6 +98,7 @@ test-suite scrapetition-test
   main-is: Spec.hs
   other-modules:
       Test.Network.Scrapetition.Scrapers.ZeitDe
+      Test.Network.Scrapetition.SqlInjection
       Test.Network.Scrapetition.Utils
       Paths_scrapetition
   hs-source-dirs:
@@ -104,10 +106,12 @@ test-suite scrapetition-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       HDBC
+    , HDBC-sqlite3
     , HTF
     , base >=4.7 && <5
     , bytestring
     , containers
+    , directory
     , forkable-monad
     , hashmap
     , http-conduit
@@ -118,6 +122,7 @@ test-suite scrapetition-test
     , scalpel
     , scrapetition
     , split
+    , temporary
     , text
     , time
   default-language: Haskell2010

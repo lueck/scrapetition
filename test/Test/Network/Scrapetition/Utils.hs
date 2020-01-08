@@ -14,7 +14,7 @@ import Network.Scrapetition.Comment
 
 minC :: T.Text -> Maybe T.Text -> Maybe T.Text -> Comment
 minC id_ parent thread =
-  Comment "Hello" Nothing Nothing Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing
+  Comment "Hello" Nothing Nothing Nothing Nothing Nothing id_ parent thread Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 cId :: Maybe T.Text -> Comment -> T.Text
 cId = identifier "|" (Just "testdomain")

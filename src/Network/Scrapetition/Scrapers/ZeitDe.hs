@@ -18,6 +18,7 @@ import Network.Scrapetition.Comment
 import Network.Scrapetition.Utils
 import Network.Scrapetition.User
 import Network.Scrapetition.Vote
+import Network.Scrapetition.Article
 import Network.Scrapetition.Env
 import Network.Scrapetition.Item
 import Network.Scrapetition.Dispatcher
@@ -64,6 +65,16 @@ zeitDeVotingDispatcher = Dispatcher
   , _dptchr_itemName = "comment_voting"
   }
 
+-- | A dispatcher for scraping articles from www.zeit.de
+zeitDeArticleDispatcher :: Dispatcher
+zeitDeArticleDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
+  , _dptchr_scraper = articlesPacked
+  , _dptchr_urlScraper = noUrls
+  , _dptchr_insertItemStmt = articleInsertStmt
+  , _dptchr_itemName = "article"
+  }
+
 zeitDeProfileDispatcher :: Dispatcher
 zeitDeProfileDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?profile.zeit.de.*"
@@ -75,7 +86,8 @@ zeitDeProfileDispatcher = Dispatcher
 
 zeitDeDispatchers :: [Dispatcher]
 zeitDeDispatchers =
-  [ zeitDeUserDispatcher
+  [ zeitDeArticleDispatcher
+  , zeitDeUserDispatcher
   , zeitDeCommentDispatcher
   , zeitDeVoterDispatcher
   , zeitDeVotingDispatcher
@@ -117,6 +129,11 @@ comment = Comment
        attr "data-fans" $
        "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]) -- up votes
   <*> (pure Nothing)            -- down votes
+  <*> ((fmap (Just . (T.takeWhile (/='?'))) $
+        attr "href" $ "a" @: [hasClass "comment-meta__date"])
+       <|> (pure Nothing))      -- article
+  <*> (pure Nothing)            -- articleVoting
+  <*> (pure Nothing)            -- parentVoting
   <*> (pure Nothing)            -- url
   <*> (pure Nothing)            -- scrapeDate
   <*> (pure Nothing)            -- scraper
@@ -127,9 +144,15 @@ usersPacked = fmap (map MkScrapedItem) users
 
 -- | Scrape users from a thread page. This means simply taking the users from the comments.
 users :: Scraper T.Text [User]
-users =
-  fmap (catMaybes . (map contributor)) $
-  chroots ("article" @: [hasClass "comment"]) comment
+users = fmap (catMaybes . (map contributor)) comments
+
+
+articlesPacked :: Scraper T.Text [ScrapedItem]
+articlesPacked = fmap (map MkScrapedItem) articles
+
+-- | Scrape articles (only URIs) from a thread page.
+articles :: Scraper T.Text [Article]
+articles = fmap (nub . catMaybes . (map articleWithCanonicalUrl)) comments
 
 
 votingsPacked :: Scraper T.Text [ScrapedItem]
