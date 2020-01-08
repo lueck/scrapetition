@@ -37,7 +37,9 @@ scrapetition - scrape comments (discussions) from social media web sites.
 Usage
 -----
 
-scrapetition URL [--wwwZeitDe-comments] ([-s|--sqlite DATABASE] |
+scrapetition ((-u|--url URL) | (-d|--db-not-seen DOMAIN))
+                  [-f|--follow-links] [-x|--cross-domain] [-a|--visit-again]
+                  [-l|--lifo] [--wwwZeitDe-comments] ([-s|--sqlite DATABASE] |
                   [-p|--postgresql CONNECTION] | [-r|--raw])
                   [--logfile LOGFILE] [--items-table ITEMTABLE]
                   [--users-table USERTABLE] [--voting-table VOTINGTABLE]
@@ -47,7 +49,22 @@ subsequent URL.
 
 Available options:
 -h,--help                Show this help text
-URL                      An URL to start with.
+-u,--url URL             A URL to start with.
+-d,--db-not-seen DOMAIN  Visit the URLs from the database, that were no not
+                         visited yet. A domain must be given to which the
+                         crawling of URLs is restricted. This restriction can
+                         be overridden with the --cross-domain option.
+-f,--follow-links        Follow all links found on a page. Use this in
+                         combination with --cross-domain for cross-domain
+                         scraping.
+-x,--cross-domain        Follow links pointing outside of the domain of the
+                         start URL.
+-a,--visit-again         Visit URLs again. Without this option, URLs will not
+                         be visited and scraped, if they are already in the
+                         database and marked as visited.
+-l,--lifo                Last in, first out handling of URLs: With this switch
+                         the last found URL is scraped first. By default, the
+                         first found URL is scraped first.
 --wwwZeitDe-comments     Scraper for discussion on articles at
                          http://www.zeit.de. This is the default scraper --
                          and the only one so far.
@@ -57,7 +74,9 @@ URL                      An URL to start with.
                          Output to PostgreSQL database given by the connection
                          string. See
                          http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT
-                         for info about the connection string.
+                         for info about the connection string. Example: '-p
+                         "host=localhost dbname=scrapetition_test user=me
+                         password=mine"'
 -r,--raw                 Output raw data.
 --logfile LOGFILE        Specify a file for logging messages. By default,
                          messages are logged to stderr.
@@ -66,7 +85,9 @@ URL                      An URL to start with.
 --voting-table VOTINGTABLE
                          Table name for voting by users about
                          items. (default: "comment_voting")
+
 ```
+
 <!-- END USAGE -->
 
 So the following scrapes an URL with the scraper for comments on
