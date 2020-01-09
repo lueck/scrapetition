@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d21fd639862b8f0f3f70f178fdf0b26cc7f77fe3570c739c2596b39462100884
+-- hash: a46c0d71c7e2b12a3a26a4716f5cc4bfbdf8f544cb939c67971bf438cfa6cca3
 
 name:           scrapetition
 version:        0.1.0.0
@@ -98,6 +98,7 @@ test-suite scrapetition-test
   main-is: Spec.hs
   other-modules:
       Test.Network.Scrapetition.Scrapers.ZeitDe
+      Test.Network.Scrapetition.Sql
       Test.Network.Scrapetition.SqlInjection
       Test.Network.Scrapetition.Utils
       Paths_scrapetition
