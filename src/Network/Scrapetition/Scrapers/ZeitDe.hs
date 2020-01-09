@@ -29,8 +29,8 @@ import Network.Scrapetition.Scrapers.Generic
 zeitDeCommentDispatcher :: Dispatcher
 zeitDeCommentDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _dptchr_scraper = commentsPacked
-  , _dptchr_urlScraper = collectCommentUrls
+  , _dptchr_scraper = flip scrapeStringLike commentsPacked
+  , _dptchr_urlScraper = flip scrapeStringLike collectCommentUrls
   , _dptchr_insertItemStmt = commentInsertStmt
   , _dptchr_itemName = "comment"
   }
@@ -39,8 +39,8 @@ zeitDeCommentDispatcher = Dispatcher
 zeitDeUserDispatcher :: Dispatcher
 zeitDeUserDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _dptchr_scraper = usersPacked
-  , _dptchr_urlScraper = noUrls
+  , _dptchr_scraper = flip scrapeStringLike usersPacked
+  , _dptchr_urlScraper = const Nothing
   , _dptchr_insertItemStmt = userInsertStmt
   , _dptchr_itemName = "user"
   }
@@ -49,8 +49,8 @@ zeitDeUserDispatcher = Dispatcher
 zeitDeVoterDispatcher :: Dispatcher
 zeitDeVoterDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _dptchr_scraper = votersPacked
-  , _dptchr_urlScraper = noUrls
+  , _dptchr_scraper = flip scrapeStringLike votersPacked
+  , _dptchr_urlScraper = const Nothing
   , _dptchr_insertItemStmt = userInsertStmt
   , _dptchr_itemName = "voter" -- not users, so in future we can relate!
   }
@@ -59,8 +59,8 @@ zeitDeVoterDispatcher = Dispatcher
 zeitDeVotingDispatcher :: Dispatcher
 zeitDeVotingDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _dptchr_scraper = votingsPacked
-  , _dptchr_urlScraper = noUrls
+  , _dptchr_scraper = flip scrapeStringLike votingsPacked
+  , _dptchr_urlScraper = const Nothing
   , _dptchr_insertItemStmt = voteInsertStmt
   , _dptchr_itemName = "comment_voting"
   }
@@ -69,8 +69,8 @@ zeitDeVotingDispatcher = Dispatcher
 zeitDeArticleDispatcher :: Dispatcher
 zeitDeArticleDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
-  , _dptchr_scraper = articlesPacked
-  , _dptchr_urlScraper = noUrls
+  , _dptchr_scraper = flip scrapeStringLike articlesPacked
+  , _dptchr_urlScraper = const Nothing
   , _dptchr_insertItemStmt = articleInsertStmt
   , _dptchr_itemName = "article"
   }
@@ -78,8 +78,8 @@ zeitDeArticleDispatcher = Dispatcher
 zeitDeProfileDispatcher :: Dispatcher
 zeitDeProfileDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?profile.zeit.de.*"
-  , _dptchr_scraper = packedEmpty
-  , _dptchr_urlScraper = collectProfileUrls
+  , _dptchr_scraper = flip scrapeStringLike packedEmpty
+  , _dptchr_urlScraper = flip scrapeStringLike collectProfileUrls
   , _dptchr_insertItemStmt = Map.empty
   , _dptchr_itemName = "urls"
   }

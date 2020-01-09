@@ -19,8 +19,8 @@ import Network.Scrapetition.Item
 -- and the insert statement is also given here.
 data Dispatcher = Dispatcher
   { _dptchr_urlScheme :: String                  -- ^ regular expression
-  , _dptchr_scraper :: Scraper T.Text ([ScrapedItem]) -- ^ the scraper
-  , _dptchr_urlScraper :: Scraper T.Text ([URL]) -- ^ the URL scraper
+  , _dptchr_scraper :: T.Text -> Maybe [ScrapedItem]   -- ^ the scraper
+  , _dptchr_urlScraper :: T.Text -> Maybe [URL]        -- ^ the URL scraper
   , _dptchr_insertItemStmt :: Map.Map String String -- ^ the SQL statement for inserting
   , _dptchr_itemName :: String                   -- ^ the type of the item
   }

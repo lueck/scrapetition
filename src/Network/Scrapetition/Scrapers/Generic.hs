@@ -35,8 +35,8 @@ packedEmpty = pure []
 urlsCollectingDispatcher :: Dispatcher
 urlsCollectingDispatcher = Dispatcher
   { _dptchr_urlScheme = ".*"
-  , _dptchr_scraper = packedEmpty
-  , _dptchr_urlScraper = links
+  , _dptchr_scraper = const Nothing
+  , _dptchr_urlScraper = flip scrapeStringLike links
   , _dptchr_insertItemStmt = Map.empty
   , _dptchr_itemName = "no item (just urls)"
   }

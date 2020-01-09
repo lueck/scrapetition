@@ -3,7 +3,7 @@ module Network.Scrapetition.App
 
 import Control.Concurrent hiding (forkIO)
 import Control.Concurrent.Forkable (forkIO)
-import Text.HTML.Scalpel hiding (scrape)
+import Text.HTML.Scalpel (URL)
 import Data.Maybe
 import Control.Lens
 import qualified Database.HDBC as DB
@@ -71,8 +71,8 @@ scrape :: (DB.IConnection c) =>
        -> Dispatcher
        -> App c ([URL])
 scrape urls seen url body dispatcher = do
-  let items = scrapeStringLike body (_dptchr_scraper dispatcher)
-      newUrls' = scrapeStringLike body (_dptchr_urlScraper dispatcher)
+  let items = (_dptchr_scraper dispatcher) body
+      newUrls' = (_dptchr_urlScraper dispatcher) body
   let newUrls = nub $ map (mkAbsolute url) $ fromMaybe [] newUrls'
   appString <- getAppString
   now <- liftIO getCurrentTime
