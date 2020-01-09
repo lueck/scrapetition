@@ -156,6 +156,14 @@ _test_url conn dbms = do
 test_article_sqlite = run_sqlite_test _test_article
 
 _test_article conn dbms = do
+  -- insert article
+  stmt <- getStmt dbms articleInsertStmt >>= prepare conn
+  executeMany stmt $ map toSqlValues articles
+  rows <- quickQuery conn "SELECT count(*) FROM article" []
+  assertEqual 0 (head $ map count rows)
+  -- delete again
+  prepare conn "DELETE FROM article" >>= flip execute []
+
   -- setup: add some urls first
   stmt <- getStmt dbms urlInsertStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) urls
@@ -171,6 +179,14 @@ _test_article conn dbms = do
 test_user_sqlite = run_sqlite_test _test_user
 
 _test_user conn dbms = do
+  -- insert user
+  stmt <- getStmt dbms userInsertStmt >>= prepare conn
+  executeMany stmt $ map toSqlValues users
+  rows <- quickQuery conn "SELECT count(*) FROM user" []
+  assertEqual 0 (head $ map count rows)
+  -- delete again
+  prepare conn "DELETE FROM user" >>= flip execute []
+
   -- setup: add some urls first
   stmt <- getStmt dbms urlInsertStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) urls
