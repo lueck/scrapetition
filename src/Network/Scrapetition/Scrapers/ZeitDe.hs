@@ -33,7 +33,7 @@ zeitDeCommentDispatcher :: Dispatcher
 zeitDeCommentDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = flip scrapeStringLike commentsPacked
-  , _dptchr_urlScraper = flip scrapeStringLike collectCommentUrls
+  , _dptchr_urlScraper = flip scrapeStringLike (andArticleUrls collectCommentUrls)
   , _dptchr_insertItemStmt = commentInsertStmt
   , _dptchr_itemName = "comment"
   }
@@ -199,7 +199,8 @@ article :: Scraper T.Text Article
 article = Article
   <$> (attr "href" $ "link" @: [match (\k v -> k=="rel" && v=="canonical")])
   <*> (fmap (Just . T.strip . T.takeWhile (/='|')) $ text $ "title")
-  <*> ((fmap Just $ attr "content" $ "meta" @: [match (\k v -> k=="name" && v=="description")])
+  <*> ((fmap (Just . T.strip) $
+        attr "content" $ "meta" @: [match (\k v -> k=="name" && v=="description")])
         <|>
         (pure Nothing))
   <*> (fmap Just $ text $
@@ -221,7 +222,8 @@ articlesSearchedPacked = fmap (map MkScrapedItem) articlesSearched
 articleSearched :: Scraper T.Text Article
 articleSearched = Article
   <$> (attr "href" $ "a" @: [hasClass "zon-teaser-standard__combined-link"])
-  <*> (fmap Just $ text $ "span" @: [hasClass "zon-teaser-standard__title"])
+  <*> (fmap (Just . T.strip) $
+       text $ "span" @: [hasClass "zon-teaser-standard__title"])
   -- description: In the search result, the description is presented as text.
   <*> ((fmap (Just . T.strip) $
         text $ "p" @: [hasClass "zon-teaser-standard__text"])
@@ -281,6 +283,13 @@ voters =
 
 -- * URLs
 
+-- | Add the implied article URLs to the URLs returned by a scraper.
+andArticleUrls :: Scraper T.Text [URL] -> Scraper T.Text [URL]
+andArticleUrls collector =
+  fmap (\urls -> (nub $ map stripQuery urls) ++ urls) collector
+  where
+    stripQuery = takeWhile (/='?')
+
 -- | Collect URLs to further comments.
 collectCommentUrls :: Scraper T.Text [URL]
 collectCommentUrls = (++)
@@ -319,7 +328,7 @@ pagerUrls =
 -- of information on the comments there: no parent ID e.g.
 collectProfileUrls :: Scraper T.Text [URL]
 collectProfileUrls = (++)
-  <$> profileDiscussionUrls
+  <$> (andArticleUrls profileDiscussionUrls)
   <*> pagerUrls
 
 -- | Scrape a link to a discussion item.
@@ -390,6 +399,6 @@ main = do
       thread = "zeit.de.thread.html"
       search = "zeit.de.search.html"
   s <- T.readFile $ folder ++ start -- search
-  let content = scrapeStringLike s articles -- Searched
+  let content = scrapeStringLike s (andArticleUrls collectCommentUrls) -- articlesSearched
   print content
   print $ show $ fmap length content
