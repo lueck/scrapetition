@@ -3,7 +3,7 @@
 module Test.Network.Scrapetition.Sql where
 
 -- | The correctness of SQL statements and the presence of tables and
--- columns can't asserted by GHC. So unit tests are needed.
+-- columns can't be asserted by GHC. So unit tests are needed.
 
 import Test.Framework
 import Database.HDBC
@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import Network.Scrapetition.Env
 import Network.Scrapetition.Item
 import Network.Scrapetition.Sql
+import Network.Scrapetition.Setup
 import Network.Scrapetition.URL
 import Network.Scrapetition.Comment
 import Network.Scrapetition.User
@@ -24,9 +25,6 @@ import Network.Scrapetition.Vote
 import Network.Scrapetition.Article
 
 
-
-dbName :: IO FilePath
-dbName = emptySystemTempFile "test-scrapetitionXXXX.db"
 
 getStmt :: String -> Map.Map String String -> IO String
 getStmt dbms stmts = do
@@ -85,20 +83,20 @@ mkC ident art url usr =
 -- function. Teardown the database afterwards.
 run_sqlite_test test_fun = do
   -- setup
-  db <- dbName
+  db <- sqliteDbName
   conn <- Sqlite3.connectSqlite3 db
-  run conn (createUrlTableSqlite "url") []
-  run conn (createUrlSourceTableSqlite "url_scraped") []
-  run conn (createArticleTableSqlite "article" "url") []
-  run conn (createCommentTable "comment") []
-  run conn (createUserTable "user") []
-  run conn (createVotingTable "comment" "user" "comment_voting") []
+  -- create all nescessary tables
+  setupSqlite conn
   commit conn
   -- run the test function
-  test_fun conn sqlite3Drv
+  test_fun conn (hdbcDriverName conn)
   -- tear down
   disconnect conn
   removeFile db
+
+-- | Create sqlite3 db in a temporary directory
+sqliteDbName :: IO FilePath
+sqliteDbName = emptySystemTempFile "test-scrapetitionXXXX.db"
 
 
 test_url_sqlite = run_sqlite_test _test_url
@@ -107,14 +105,12 @@ _test_url conn dbms = do
   -- test insertion of urls
   stmt <- getStmt dbms urlInsertStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) urls
-  commit conn
   rows <- quickQuery conn "SELECT url FROM url" []
   assertEqual urls (map strFromSql rows)
 
   -- insertion of duplicate urls will add nothing
   stmt <- getStmt dbms urlInsertStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) urls
-  commit conn
   rows <- quickQuery conn "SELECT url FROM url" []
   assertEqual urls (map strFromSql rows)
 
@@ -131,7 +127,6 @@ _test_url conn dbms = do
   -- update of last seen date
   stmt <- getStmt dbms urlSeenDateUpdateStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) $ [head urls]
-  commit conn
 
   -- selection of seen urls
   stmt <- getStmt dbms urlSeenSelectStmt -- >>= prepare conn
@@ -148,7 +143,6 @@ _test_url conn dbms = do
   executeMany stmt $ map (\url -> [toSql $ head urls, toSql url]) $ tail urls
   -- insertion of duplicates will add nothing
   executeMany stmt $ map (\url -> [toSql $ head urls, toSql url]) $ tail urls
-  commit conn
   rows <- quickQuery conn "SELECT count(*) FROM url_scraped" []
   assertEqual (length urls - 1) (head $ map count rows)
 
@@ -167,7 +161,6 @@ _test_article conn dbms = do
   -- setup: add some urls first
   stmt <- getStmt dbms urlInsertStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) urls
-  commit conn
 
   -- insert article
   stmt <- getStmt dbms articleInsertStmt >>= prepare conn
@@ -190,7 +183,6 @@ _test_user conn dbms = do
   -- setup: add some urls first
   stmt <- getStmt dbms urlInsertStmt >>= prepare conn
   executeMany stmt $ map ((:[]) . toSql) urls
-  commit conn
   
   -- insert user
   stmt <- getStmt dbms userInsertStmt >>= prepare conn
@@ -269,7 +261,6 @@ _test_commentWithUrlAndUserOnly conn dbms = do
   -- further setup: add a user
   stmt <- getStmt dbms userInsertStmt >>= prepare conn
   executeMany stmt $ map toSqlValues users
-  commit conn
   
   -- delete and insert comment again
   prepare conn "DELETE FROM comment" >>= flip execute []
@@ -277,4 +268,3 @@ _test_commentWithUrlAndUserOnly conn dbms = do
   executeMany stmt $ map toSqlValues comments
   rows <- quickQuery conn "SELECT user_id FROM comment" []
   assertEqual [Nothing, Just 1, Nothing, Nothing] (map maybeIntFromSql rows)
-

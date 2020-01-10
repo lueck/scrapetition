@@ -26,6 +26,7 @@ import Network.Scrapetition.Utils
 import Network.Scrapetition.Dispatcher
 import Network.Scrapetition.URL
 import Network.Scrapetition.Sql
+import Network.Scrapetition.Setup
 import Network.Scrapetition.Scrapers.Generic
 
 import qualified Network.Scrapetition.Scrapers.ZeitDe as ZeitDe
@@ -185,7 +186,7 @@ run :: Opts -> IO ()
 run opts@(Opts source _ _ again _ _ (SQLite fname) _ _ _ _) = do
   env <- evalOpts opts
   conn <- Sqlite3.connectSqlite3 fname
-  prepareSqlite opts conn
+  setupSqlite conn
   cs <- flip runReaderT (env & env_conn .~ (Just (conn::Sqlite3.Connection))) $ do
     crawl opts
     -- seen <- selectUrlsSeen
@@ -226,17 +227,6 @@ crawl opts@(Opts (NotSeenFromDB _) _ _ again _ _ _ _ _ _ _) = do
   urls <- selectUrlsNotSeen
   runScrapers urls (if again then [] else seen)
 
-
-prepareSqlite :: DB.IConnection conn => Opts -> conn -> IO ()
-prepareSqlite opts conn = do
-  DB.run conn (createCommentTable "comment") []
-  DB.run conn (createUserTable "user") []
-  -- DB.run conn (createUserTable "voter") []
-  DB.run conn (createVotingTable "comment" "user" "comment_voting") []
-  DB.run conn (createUrlTableSqlite "url") []
-  DB.run conn (createUrlSourceTableSqlite "url_scraped") []
-  DB.run conn (createArticleTableSqlite "article" "url") []
-  DB.commit conn
 
 -- report :: (Item i) => Env c i -> [i] -> IO ()
 -- report env cs = do
