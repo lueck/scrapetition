@@ -6,8 +6,11 @@ import Test.Framework
 
 import Text.HTML.Scalpel (scrapeStringLike)
 import qualified Data.Text.IO as T
+import Data.Time
+import Control.Monad
 
 import Network.Scrapetition.Comment
+import Network.Scrapetition.Article
 import Network.Scrapetition.Scrapers.ZeitDe
 
 testfile = "test/examples/zeit.de.article.html"
@@ -118,3 +121,21 @@ test_collectCommentUrlsUrls = do
            "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=5",
            "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache?page=35"])
     urls
+
+test_article = do
+  s <- T.readFile testfile
+  let as = scrapeStringLike s articles
+  assertEqual (Just 1) (fmap length as)
+  assertEqual
+    (Just "https://www.zeit.de/arbeit/2019-10/diskriminierung-beruf-transsexualitaet-bewerbung-ansprache")
+    (fmap (_artcl_canonical . head) as)
+  assertJust (join $ fmap (_artcl_title . head) as)
+  assertJust (join $ fmap (_artcl_description . head) as)
+  assertJust (join $ fmap (_artcl_author . head) as)
+  assertJust (join $ fmap (_artcl_date . head) as)
+  assertEqual (Just "Juli Katz") (join $ fmap (_artcl_author . head) as)
+
+test_parseDatetime = do
+  assertEqual
+    (Just $ UTCTime (fromGregorian 2020 1 9) (secondsToDiffTime 47758))
+    (parseZeitDeDatetime "2020-01-09T14:15:58+01:00")

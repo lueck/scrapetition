@@ -12,7 +12,10 @@ import Data.Char
 import Control.Lens
 import Data.Maybe
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.Map as Map
+import Data.Time
+import Data.Time.Format
 
 import Network.Scrapetition.Comment
 import Network.Scrapetition.Utils
@@ -68,8 +71,21 @@ zeitDeVotingDispatcher = Dispatcher
 -- | A dispatcher for scraping articles from www.zeit.de
 zeitDeArticleDispatcher :: Dispatcher
 zeitDeArticleDispatcher = Dispatcher
-  { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de/[^?]*"
   , _dptchr_scraper = flip scrapeStringLike articlesPacked
+  , _dptchr_urlScraper = const Nothing
+  , _dptchr_insertItemStmt = articleInsertStmt
+  , _dptchr_itemName = "article"
+  }
+
+-- | A dispatcher for scraping articles from www.zeit.de. This works
+-- even for thread pages. It is necessary, because sometimes crawling
+-- jumps to a thread page immediately, not to the article page
+-- first. This is the case when scraping a users profile.
+zeitDeArticleFromCommentDispatcher :: Dispatcher
+zeitDeArticleFromCommentDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de/.*"
+  , _dptchr_scraper = flip scrapeStringLike articlesFromCommentsPacked
   , _dptchr_urlScraper = const Nothing
   , _dptchr_insertItemStmt = articleInsertStmt
   , _dptchr_itemName = "article"
@@ -78,20 +94,31 @@ zeitDeArticleDispatcher = Dispatcher
 zeitDeProfileDispatcher :: Dispatcher
 zeitDeProfileDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?profile.zeit.de.*"
-  , _dptchr_scraper = flip scrapeStringLike packedEmpty
+  , _dptchr_scraper = const Nothing
   , _dptchr_urlScraper = flip scrapeStringLike collectProfileUrls
   , _dptchr_insertItemStmt = Map.empty
-  , _dptchr_itemName = "urls"
+  , _dptchr_itemName = "url"
+  }
+
+zeitDeSearchDispatcher :: Dispatcher
+zeitDeSearchDispatcher = Dispatcher
+  { _dptchr_urlScheme = "^(https?://)?www.zeit.de/suche/.*"
+  , _dptchr_scraper = flip scrapeStringLike articlesSearchedPacked
+  , _dptchr_urlScraper = flip scrapeStringLike collectSearchResultUrls
+  , _dptchr_insertItemStmt = articleInsertStmt
+  , _dptchr_itemName = "article"
   }
 
 zeitDeDispatchers :: [Dispatcher]
 zeitDeDispatchers =
   [ zeitDeArticleDispatcher
+  , zeitDeArticleFromCommentDispatcher
   , zeitDeUserDispatcher
   , zeitDeCommentDispatcher
   , zeitDeVoterDispatcher
   , zeitDeVotingDispatcher
   , zeitDeProfileDispatcher
+  , zeitDeSearchDispatcher
   ]
 
 
@@ -152,14 +179,64 @@ usersPacked = fmap (map MkScrapedItem) users
 users :: Scraper T.Text [User]
 users = fmap (catMaybes . (map contributor)) comments
 
+-- * Article
+
+-- | Scrape articles (only URIs) from a thread page.
+articlesFromComments :: Scraper T.Text [Article]
+articlesFromComments = fmap (nub . catMaybes . (map articleWithCanonicalUrl)) comments
+
+articlesFromCommentsPacked :: Scraper T.Text [ScrapedItem]
+articlesFromCommentsPacked = fmap (map MkScrapedItem) articles
+
+-- | Scrape the article meta data from a article start page
+articles :: Scraper T.Text [Article]
+articles = chroots "html" article
 
 articlesPacked :: Scraper T.Text [ScrapedItem]
 articlesPacked = fmap (map MkScrapedItem) articles
 
--- | Scrape articles (only URIs) from a thread page.
-articles :: Scraper T.Text [Article]
-articles = fmap (nub . catMaybes . (map articleWithCanonicalUrl)) comments
+article :: Scraper T.Text Article
+article = Article
+  <$> (attr "href" $ "link" @: [match (\k v -> k=="rel" && v=="canonical")])
+  <*> (fmap (Just . T.strip . T.takeWhile (/='|')) $ text $ "title")
+  <*> ((fmap Just $ attr "content" $ "meta" @: [match (\k v -> k=="name" && v=="description")])
+        <|>
+        (pure Nothing))
+  <*> (fmap Just $ text $
+       "div" @: [hasClass "byline"] // "span" @: [match (\k v -> k=="itemprop" && v=="name")])
+  <*> (fmap (parseZeitDeDatetime . T.unpack) $ attr "content" $
+       "meta" @: [match (\k v -> k=="name" && v=="date")])
+  <*> (pure Nothing)
+  <*> (pure Nothing)
+  <*> (pure Nothing)
 
+
+-- | Scrape articles from search results
+articlesSearched :: Scraper T.Text [Article]
+articlesSearched = chroots ("article" @: [hasClass "zon-teaser-standard"]) articleSearched
+
+articlesSearchedPacked :: Scraper T.Text [ScrapedItem]
+articlesSearchedPacked = fmap (map MkScrapedItem) articlesSearched
+
+articleSearched :: Scraper T.Text Article
+articleSearched = Article
+  <$> (attr "href" $ "a" @: [hasClass "zon-teaser-standard__combined-link"])
+  <*> (fmap Just $ text $ "span" @: [hasClass "zon-teaser-standard__title"])
+  -- description: In the search result, the description is presented as text.
+  <*> ((fmap (Just . T.strip) $
+        text $ "p" @: [hasClass "zon-teaser-standard__text"])
+       <|>
+       (pure Nothing))
+  <*> (fmap (Just . stripAuthor) $
+       text $ "span" @: [hasClass "zon-teaser-standard__byline"])
+  <*> (fmap (parseZeitDeDatetime . T.unpack) $ attr "datetime" $
+       "time" @: [hasClass "zon-teaser-standard__datetime"])
+  <*> (pure Nothing)
+  <*> (pure Nothing)
+  <*> (pure Nothing)
+
+
+-- * Votings
 
 votingsPacked :: Scraper T.Text [ScrapedItem]
 votingsPacked = fmap (map MkScrapedItem) votings
@@ -255,6 +332,12 @@ discussionUrl =
   fmap (dropFragment . T.unpack) $
   attr "href" $ "a" @: [hasClass "user-comment__link"]
 
+-- | Scrape links from search results and the pager for more search results.
+collectSearchResultUrls :: Scraper T.Text [URL]
+collectSearchResultUrls = (++)
+  <$> pagerUrls
+  <*> (fmap (map (T.unpack . _artcl_canonical)) articlesSearched)
+
 
 -- * Pure helper functions
 
@@ -285,18 +368,28 @@ fragmentOrUrl s
 dropFragment :: URL -> URL
 dropFragment = takeWhile (/='#')
 
+-- | Parse a time string like "2020-01-09T14:15:58+01:00".
+parseZeitDeDatetime :: String -> Maybe UTCTime
+parseZeitDeDatetime s = id
+  <$> (parseTimeM True defaultTimeLocale "%FT%T%z" s :: Maybe UTCTime)
+
+-- | Strip descriptions like "Von" or "Ein Kolumne von" around the
+-- author of an article. We use the fact, that there are several
+-- spaces before the name.
+stripAuthor :: T.Text -> T.Text
+stripAuthor s = T.strip $ last $ T.splitOn "  " s
 
 
--- * This should only be used for development:
+-- * Playing around
 
-comments' :: Scraper T.Text [T.Text]
-comments' = chroots ("article" @: [hasClass "comment"]) comment'
-
-comment' :: Scraper T.Text T.Text
-comment' =
-  -- fmap (show . countOfFans) $ attr "data-fans" $ "a" @: [hasClass "comment__reaction", hasClass "js-recommend-comment"]
-  -- text $ "div" @: [hasClass "comment__body"]
-  -- attr "href" $ "div" @: [hasClass "comment-meta__name"] // "a" -- nicht immer da! 50377209 fehlt
-  -- text $ "div" @: [hasClass "comment-meta__name"] // "a" -- nicht immer da!
-  attr "id" $ "article"
-
+-- | Play with: stack runghc ZeitDe.hs
+main :: IO ()
+main = do
+  let folder = "../../../../test/examples/"
+      start = "zeit.de.article.html"
+      thread = "zeit.de.thread.html"
+      search = "zeit.de.search.html"
+  s <- T.readFile $ folder ++ start -- search
+  let content = scrapeStringLike s articles -- Searched
+  print content
+  print $ show $ fmap length content

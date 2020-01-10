@@ -13,6 +13,7 @@ import System.IO.Temp
 import System.IO
 import System.Directory
 import qualified Data.Text as T
+import Data.Time
 
 import Network.Scrapetition.Env
 import Network.Scrapetition.Item
@@ -44,6 +45,9 @@ maybeIntFromSql :: [SqlValue] -> Maybe Int
 maybeIntFromSql (x:[]) = (fromSql x) :: Maybe Int
 maybeIntFromSql _ = Just (-1)
 
+aDate :: UTCTime
+aDate = UTCTime (fromGregorian 2020 1 9) (secondsToDiffTime 47758)
+
 urls :: [String]
 urls =
   [ "http://start.it"
@@ -53,10 +57,14 @@ urls =
 
 articles :: [Article]
 articles =
-  [ Article "http://www.feu.de/ksw/ndl" (Just "Institut") Nothing (Just "http://start.it") Nothing (Just "test")
-  , Article "http://not.present" Nothing Nothing Nothing Nothing Nothing
-  , Article "http://www.feu.de/ksw/ndl" Nothing Nothing (Just "http://not.present") Nothing Nothing
+  [ mkArt "http://www.feu.de/ksw/ndl" (Just "http://start.it")
+  , mkArt "http://not.present" Nothing
+  , mkArt "http://www.feu.de/ksw/ndl" (Just "http://not.present")
   ]
+
+mkArt :: T.Text -> Maybe T.Text -> Article
+mkArt canonical url =
+  Article canonical (Just "Title") (Just "Desc") (Just "Company") (Just aDate) url (Just aDate) (Just "test")
 
 users :: [User]
 users =
