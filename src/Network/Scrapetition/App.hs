@@ -56,7 +56,8 @@ runScrapers urls seen = do
                   map (mkAbsolute next) $ concat newUrls)
           seen' = next:seen
           unionOfUrls = if (_env_lifo conf)
-            then ((reverse newUrls') `union` urls)
+            -- do not reverse newUrls' in order to not break any scraper logic
+            then (newUrls' `union` urls)
             else (urls `union` newUrls')
       liftIO $ threadDelay 2000000
       runScrapers (unionOfUrls \\ seen') seen'
