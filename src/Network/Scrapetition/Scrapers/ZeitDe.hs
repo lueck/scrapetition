@@ -33,7 +33,7 @@ zeitDeCommentDispatcher :: Dispatcher
 zeitDeCommentDispatcher = Dispatcher
   { _dptchr_urlScheme = "^(https?://)?www.zeit.de.*"
   , _dptchr_scraper = flip scrapeStringLike commentsPacked
-  , _dptchr_urlScraper = flip scrapeStringLike (andArticleUrls collectCommentUrls)
+  , _dptchr_urlScraper = flip scrapeStringLike collectCommentUrls
   , _dptchr_insertItemStmt = commentInsertStmt
   , _dptchr_itemName = "comment"
   }
@@ -328,17 +328,18 @@ pagerUrls =
 -- of information on the comments there: no parent ID e.g.
 collectProfileUrls :: Scraper T.Text [URL]
 collectProfileUrls = (++)
-  <$> (andArticleUrls profileDiscussionUrls)
+  <$> profileDiscussionUrls
   <*> pagerUrls
 
--- | Scrape a link to a discussion item.
+-- | Scrape a link to a discussion item. We drop the whole
+-- queryString, in order to start with an article page.
 profileDiscussionUrls :: Scraper T.Text [URL]
 profileDiscussionUrls =
   chroots ("article" @: [hasClass "user-comment"]) discussionUrl
 
 discussionUrl :: Scraper T.Text URL
 discussionUrl =
-  fmap (dropFragment . T.unpack) $
+  fmap (T.unpack . T.takeWhile (/='?')) $
   attr "href" $ "a" @: [hasClass "user-comment__link"]
 
 -- | Scrape links from search results and the pager for more search results.
@@ -398,7 +399,7 @@ main = do
       start = "zeit.de.article.html"
       thread = "zeit.de.thread.html"
       search = "zeit.de.search.html"
-  s <- T.readFile $ folder ++ start -- search
-  let content = scrapeStringLike s (andArticleUrls collectCommentUrls) -- articlesSearched
+  s <- T.readFile $ "/tmp/sesame-street" -- folder ++ start -- search
+  let content = scrapeStringLike s articles
   print content
   print $ show $ fmap length content
