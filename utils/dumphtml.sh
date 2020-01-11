@@ -1,17 +1,16 @@
 #!/bin/sh
 
-USAGE="$0 -- generate a html file from comments.
+USAGE="$0 -- generate a html file from comments in sqlite3 database.
 [ -h | --help		Show this help.
 [ --database FILENAME ]	Specify database file.
 [ -w | --where WHERE ] 	Where clause.
 [ -H | --no-header ] 	Do not print meta data on comments.
 
-WHERE must be a valid sqlite3 WHERE clause. Defaults to 1, which
-selects all comments. The file repair.sed must be present in this
-directory, too.
+WHERE must be a valid sqlite3 WHERE clause. Defaults to 1 (true),
+which selects all comments.
 
-There should be thread IDs assigned to each comment. If there aren't,
-create a view first. See threadview.sql
+There should be thread IDs assigned to each comment. If not, create a
+view first. See threadview.sql
 
 Examples:
 
@@ -24,8 +23,13 @@ will dump the whole database into file all.html.
 $0 -w \"name LIKE '%Uwe%'\" > auUwe.html
 will dump all comments by Uwe into the file auUwe.html.
 
-$0 -w \"comment IN (\$(./subthread.sh 569720))\"
+$0 -w \"id IN (\$(./subthread.sh 569720))\"
 will dump all comments in the subthread started with comment 569720.
+
+$0 -w \"id IN (\$(./subthread.sh 'cid-51093052'))\"
+will dump all comments in the subthread started with comment
+cid-51093052.
+
 "
 
 die()
@@ -37,7 +41,7 @@ die()
 
 # Default values
 db="data.db"
-table="comment"
+table="comments"
 column="text"
 where="1" ## "TRUE"
 suffix="xml"
@@ -100,7 +104,7 @@ EOF
        echo "</div>";
     fi
     echo "<div class=\"text\">";
-    sqlite3 -batch $db "select text from $table where id = '$i';" | ./repairxml.sed
+    sqlite3 -batch $db "select text from $table where id = '$i';" # | $(dirname $0)/repairxml.sed
     echo "</div>";
     echo "</div>";
     echo "<hr/>";

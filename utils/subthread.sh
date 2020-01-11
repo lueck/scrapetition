@@ -12,7 +12,7 @@ $0 collects IDs of a sub-thread starting from START_ID.
 
 Examples:
 $0 -db petition.db 569720
-$0 --database data.db \"'cid-50377256'\"
+$0 --database data.db 'cid-50377256'
 "
 
 die()
@@ -64,8 +64,8 @@ ids=$(sqlite3 -batch $db <<EOF
 WITH RECURSIVE ids (id) AS (
      VALUES ('$start')
      UNION
-     SELECT comments.id FROM ids, comments
-     WHERE comments.parent = ids.id)
+     SELECT comment.id FROM ids, comment
+     WHERE comment.parent = ids.id)
 SELECT * FROM ids;
 EOF
    )
