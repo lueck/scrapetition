@@ -203,8 +203,10 @@ article = Article
         attr "content" $ "meta" @: [match (\k v -> k=="name" && v=="description")])
         <|>
         (pure Nothing))
-  <*> (fmap Just $ text $
-       "div" @: [hasClass "byline"] // "span" @: [match (\k v -> k=="itemprop" && v=="name")])
+  <*> ((fmap Just $ text $
+        "div" @: [hasClass "byline"] // "span" @: [match (\k v -> k=="itemprop" && v=="name")])
+        <|>
+        (pure Nothing))
   <*> (fmap (parseZeitDeDatetime . T.unpack) $ attr "content" $
        "meta" @: [match (\k v -> k=="name" && v=="date")])
   <*> (pure Nothing)
@@ -229,8 +231,10 @@ articleSearched = Article
         text $ "p" @: [hasClass "zon-teaser-standard__text"])
        <|>
        (pure Nothing))
-  <*> (fmap (Just . stripAuthor) $
-       text $ "span" @: [hasClass "zon-teaser-standard__byline"])
+  <*> ((fmap (Just . stripAuthor) $
+        text $ "span" @: [hasClass "zon-teaser-standard__byline"])
+       <|>
+       (pure Nothing))
   <*> (fmap (parseZeitDeDatetime . T.unpack) $ attr "datetime" $
        "time" @: [hasClass "zon-teaser-standard__datetime"])
   <*> (pure Nothing)
