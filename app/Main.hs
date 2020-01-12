@@ -199,6 +199,7 @@ run opts@(Opts source _ _ again _ _ (Postgres connection) _ _ _ _) = do
   env <- evalOpts opts
   conn <- PostgreSQL.connectPostgreSQL connection
   -- prepareSql opts conn
+  DB.run conn "SET search_path TO scrapetition" []
   cs <- flip runReaderT (env & env_conn .~ (Just (conn::PostgreSQL.Connection))) $ do
     crawl opts
     -- seen <- selectUrlsSeen
