@@ -10,7 +10,8 @@ CREATE VIEW comments
 -- This is a view on comments with thread IDs propagated.
 AS
 WITH RECURSIVE
-     dis (id,
+     dis (comment_id,
+     	  id,
      	  domain,
 	  text,
 	  title,
@@ -26,11 +27,11 @@ WITH RECURSIVE
 	  url_id,
 	  height)
      AS (
-     SELECT id, domain, text, title, user_id, name, date_informal, date, article_id,
+     SELECT comment_id, id, domain, text, title, user_id, name, date_informal, date, article_id,
      	    parent, id, up_votes, down_votes, url_id, 0
 	    FROM comment WHERE parent is NULL
      UNION
-     SELECT comment.id, comment.domain, comment.text, comment.title,
+     SELECT comment.comment_id, comment.id, comment.domain, comment.text, comment.title,
      	    comment.user_id, comment.name, comment.date_informal,
 	    comment.date, comment.article_id,
 	    comment.parent, dis.thread, comment.up_votes,

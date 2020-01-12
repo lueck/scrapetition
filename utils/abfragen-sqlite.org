@@ -1,0 +1,175 @@
+#+PROPERTY: header-args:sqlite :db ../data.db :colnames yes :exports both
+#+OPTIONS: title:t author:nil date:t toc:t ':t ^:t prop:t
+#+LANGUAGE: de
+#+title: Einfache Abfragen an eine SQLite3-Datenbank
+* Preprocessing
+** Emacs							   :noexport:
+If you know what you're doing, set ~org-confirm-babel-evaluate~ to
+~nil~ to not get asked for evaluation of each code block on exporting.
+
+** Verbreiten der Thread IDs				      :preprocessing:
+Anders als in PostgreSQL können wir in SQLite3 keinen Update der
+Tabelle ~comment~ mit einer rekursiven CTE durchführen. Deswegen
+benötigen wir einen View, um die Thread IDs zu propagieren. Alle
+Anfragen im Zusammenhang mit Threads müssen immer über den View
+~comments~ an die Tabelle ~comment~ gestellt werden.
+
+Der View wird durch Ausführen der Datei ~threadview.sql~ eingerichtet.
+
+#+BEGIN_SRC sqlite :exports code
+.read threadview.sql
+#+END_SRC
+
+#+RESULTS:
+
+* Einfache Statistik
+** URLs
+*** Anzahl der Artikel, Kommentare und gescrapten URLs je Domain
+#+BEGIN_SRC sqlite
+SELECT count(distinct article_id) as articles, count(*) as comments,
+count(distinct url_id) as urls, domain 
+FROM comment GROUP BY domain;
+#+END_SRC
+
+*** Durchschnittle Anzahl der Kommentare je gescrapter URL
+#+BEGIN_SRC sqlite
+WITH t(url_id, cnt) AS
+(SELECT url_id, count(*) AS cnt FROM comment group by url_id)
+SELECT avg(cnt) FROM t; 
+#+END_SRC
+
+*** Kommentare je besuchter URL					   :noexport:
+#+BEGIN_SRC sqlite :exports none
+SELECT count(*) AS cnt, url FROM comment JOIN url USING (url_id) 
+GROUP BY url ORDER BY cnt DESC LIMIT 30;
+#+END_SRC
+
+** Artikel
+*** Anzahl der Artikel
+#+BEGIN_SRC sqlite
+SELECT count(distinct article_id) FROM comment;
+#+END_SRC
+
+*** Durchschnittliche Anzahl der Kommentare je Artikel
+
+#+BEGIN_SRC sqlite
+WITH t(url_id, cnt) AS
+(SELECT article_id, count(*) AS cnt FROM comment group by article_id)
+SELECT avg(cnt) FROM t; 
+#+END_SRC
+
+*** Threads und Kommentare je Artikel
+#+BEGIN_SRC sqlite
+SELECT count(distinct thread) AS threads, count(distinct comment_id) AS comments, article.title
+FROM comments LEFT JOIN article USING (article_id)
+GROUP BY article.title
+ORDER BY threads DESC
+LIMIT 50;
+#+END_SRC
+
+** Threads
+*** Kommentare je Thread
+#+BEGIN_SRC sqlite
+SELECT count(*) AS cnt, thread, article_id as art, article.title
+FROM comments LEFT JOIN article USING (article_id)
+GROUP BY article_id, article.title, thread
+ORDER BY cnt DESC
+LIMIT 50;
+#+END_SRC
+
+*** Anzahl der Benutzer und Kommentare je Thread, sortiert nach Anzahl der Kommentare
+Die (kommunikative) _Dichte_ sei definiert als Quotient der Anzahl der
+Kommentare durch die Anzahl der Nutzer (in einem Thread).
+#+BEGIN_SRC sqlite
+WITH t as (
+     SELECT count(distinct name) as users, count(*) as comments, thread, article_id
+     FROM comments
+     GROUP BY thread, article_id)
+SELECT users, comments, round(cast(comments AS DECIMAL) / users, 2) as dichte, thread, a.title
+FROM t LEFT JOIN article AS a USING (article_id)
+ORDER BY comments DESC LIMIT 30;
+#+END_SRC
+
+*** Anzahl der Benutzer und Kommentare je Thread, sortiert nach Dichte
+#+BEGIN_SRC sqlite
+WITH t as (
+     SELECT count(distinct name) as users, count(*) as comments, thread, article_id
+     FROM comments
+     GROUP BY thread, article_id)
+SELECT users, comments, round(cast(comments AS DECIMAL) / users, 2) as dichte,  thread, a.title
+FROM t LEFT JOIN article AS a USING (article_id)
+ORDER BY dichte DESC LIMIT 30;
+#+END_SRC
+
+** Benutzer
+*** Anzahl Nutzer
+#+BEGIN_SRC sqlite
+SELECT count(*) FROM "user" WHERE name IS NOT NULL;
+#+END_SRC
+
+*** Kommentare je Nutzer
+
+#+BEGIN_SRC sqlite
+SELECT name, count(*) AS cnt FROM comment GROUP BY name ORDER BY cnt DESC LIMIT 30;
+#+END_SRC
+
+* Graphen
+** Antworten auf andere Nutzer
+*** Ausgabe hier
+#+BEGIN_SRC sqlite
+SELECT child.name AS Kommentator, parent.name AS Kommentierter, count(child.id) AS comments, 
+count(distinct child.thread) as threads, count(distinct child.article_id) as articles
+FROM comments AS child
+CROSS JOIN comments AS parent
+WHERE child.parent = parent.id
+GROUP BY parent.name, child.name ORDER BY comments DESC
+LIMIT 50;
+#+END_SRC
+
+*** Ausgabe für Gephi in externe Datei 				     :output:
+Dasselbe wie zuvor, nur Ausgabe in Datei. Man wird dafür sicher die
+Berechnung auf einen Artikel beschränken wollen...
+#+BEGIN_SRC sqlite :exports code
+.mode csv
+.output /tmp/answers.csv
+SELECT child.name AS Source, parent.name AS Target, count(child.id) AS Weight
+FROM comments AS child
+CROSS JOIN comments AS parent
+WHERE child.parent = parent.id
+AND child.article_id = 26896    --  TODO
+GROUP BY parent.name, child.name ORDER BY Weight DESC; -- LIMIT 40;
+.output stdout
+#+END_SRC
+
+#+RESULTS:
+
+** Kookkurenz von Nutzern auf der Grundlagen von Threads
+*** Ausgabe hier
+#+BEGIN_SRC sqlite
+SELECT a.name AS Source, b.name AS Target,
+count(DISTINCT a.thread) AS threads,
+count(DISTINCT a.article_id) AS articles
+FROM comments AS a
+CROSS JOIN comments AS b
+WHERE a.thread = b.thread AND a.name != b.name
+GROUP BY Source, Target ORDER BY threads DESC
+LIMIT 40;
+#+END_SRC
+
+*** Ausgabe für Gephi in externe Datei				     :output:
+Man wird sicher die Berechnung auf einen Artikel beschränken wollen...
+#+BEGIN_SRC sqlite :exports code
+.mode csv
+.output /tmp/cooccurence.csv
+SELECT a.name AS Source, b.name AS Target,
+count(DISTINCT a.thread) AS Weight
+FROM comments AS a
+CROSS JOIN comments AS b
+WHERE a.thread = b.thread AND a.name != b.name
+AND a.article_id = 26896       -- TODO
+GROUP BY Source, Target ORDER BY Weight DESC;
+.output stdout
+#+END_SRC
+
+#+RESULTS:
+

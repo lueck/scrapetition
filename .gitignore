@@ -5,5 +5,10 @@
 *.lock
 
 *.db
+
 utils/*.html
 utils/*.csv
+utils/*.tex
+utils/*.pdf
+utils/auto
+utils/*.zip
