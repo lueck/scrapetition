@@ -4,7 +4,8 @@ Scrapetition
 Scrapetition is a type safe yet flexible web scraper written in
 Haskell. In gains flexibility by using type classes and GADTs and can
 easily be extented by scalpel scrapers. The scraped items are stored
-in an SQL database.
+in an SQL database, either SQLite3 or
+[PostgreSQL](http://github.com/lueck/scrapetition-db).
 
 Right now it has scrapers for
 
