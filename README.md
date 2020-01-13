@@ -2,21 +2,24 @@ Scrapetition
 ============
 
 Scrapetition is a type safe yet flexible web scraper written in
-Haskell. In gains flexibility by using type classes and GADTs and can
-easily be extented by scalpel scrapers. The scraped items are stored
-in an SQL database, either SQLite3 or
-[PostgreSQL](http://github.com/lueck/scrapetition-db).
+Haskell. It can easily be extented by html scrapers or json
+parsers. The scraped items are stored in an SQL database, either
+SQLite3 or [PostgreSQL](http://github.com/lueck/scrapetition-db).
 
 Right now it has scrapers for
 
-- Comments on the articles on (http://www.zeit.de)[http://www.zeit.de]
+- Comments on the articles on [http://www.zeit.de](http://www.zeit.de)
 
+I also wrote scraper modules for epetitionen.bundestag.de,
+www.spiegel.de and www.faz.net.
 
 ## Installation
 
-Scrapetition is written in the Haskell programming language. In order
-to install it, at least [Stack](https://docs.haskellstack.org/) is
-needed, Haskell's build tool.
+Scrapetition is written in the
+[Haskell](https://en.wikipedia.org/wiki/Haskell_(programming_language))
+programming language. In order to install it, at least
+[Stack](https://docs.haskellstack.org/) is needed, Haskell's build
+tool.
 
 At least for building the commandline program, header files for
 [SQLite3](https://www.sqlite.org) and
@@ -104,19 +107,34 @@ www.zeit.de:
 
 ## Hacking
 
-If you want to add a new type of record that you want to scrape from
-the web, all you have to do is:
+`scrapetition` gains flexibility by using type classes and GADTs. If
+you want to add a new type of record that you want to scrape from the
+web, you have to
 
 - write the record constructor (an ADT)
 - make it an instance of `HasMeta`
 - make it an instance of `ToSqlValues`
 - wrap it into the GADT `ScrapedItem` after scraping
-- write a function for inserting the record into the database
-- write your scraper using scalpel
-- pass information for which URLs the scraper is to be used and the
-  name of the insertion function to the dispatcher
+- define an SQL statement for inserting the record into the database
+- write your scraper using scalpel or aeson or any other parser
+- write a scraper for finding URLs for this content scraper
+- pass information for which URL scheme the scraper is to be used and
+  the SQL statement to the dispatcher
 
 See `Comment.hs` and `ZeitDe.hs` for an example.
+
+All types of scraped data except URLs must be wrapped in the
+`ScrapedItem` GADT in order to get augmented with metadata (scrape
+time, URL, scraper) and to get pushed into the database by some
+generic functions. Dispatchers are defined for URL schemes (defined by
+regular expressions) and determine which scrapers to use for which URL
+and wich SQL statement for db insertion. Scraping order is determined
+by the order of the list of dispatchers. Each dispatcher defines a
+scraper for content objects and a scraper for URLs.
+
+Right now there are the following records for scraped content: users,
+articles (either news articles or items for sale, but only metadata),
+comments, voting.
 
 ## License
 
