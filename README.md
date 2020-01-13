@@ -17,7 +17,7 @@ www.spiegel.de and www.faz.net.
 
 Scrapetition is written in the
 [Haskell](https://en.wikipedia.org/wiki/Haskell_(programming_language))
-programming language. In order to install it, at least
+programming language. In order to install it,
 [Stack](https://docs.haskellstack.org/) is needed, Haskell's build
 tool.
 
@@ -27,7 +27,8 @@ At least for building the commandline program, header files for
 can be build without these database engines.
 
 Once you have the Haskell Tool Stack installed clone this repository
-and execute the following command in the root directory:
+and execute the following command in the root directory of the cloned
+repository:
 
 	stack build
 	stack install
