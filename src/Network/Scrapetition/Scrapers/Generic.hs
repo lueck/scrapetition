@@ -6,6 +6,7 @@ module Network.Scrapetition.Scrapers.Generic where
 import Text.HTML.Scalpel
 import qualified Data.Text as T
 import qualified Data.Map as Map
+import Data.Time
 
 import Network.Scrapetition.Env
 import Network.Scrapetition.Dispatcher
@@ -41,3 +42,7 @@ urlsCollectingDispatcher = Dispatcher
   , _dptchr_itemName = "no item (just urls)"
   }
 
+-- | Parse a time string like "2020-01-09T14:15:58+01:00".
+parseJsonDatetime :: String -> Maybe UTCTime
+parseJsonDatetime s = id
+  <$> (parseTimeM True defaultTimeLocale "%FT%T%z" s :: Maybe UTCTime)
