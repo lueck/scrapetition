@@ -137,6 +137,12 @@ Right now there are the following records for scraped content: users,
 articles (either news articles or items for sale, but only metadata),
 comments, voting.
 
+## Roadmap
+
+Currently working on selenium integration: Either get an URL directly
+or via selenium proxy and the APIs `getSource` function, use
+dispatchers to decide.
+
 ## License
 
 Licensed under either of:
