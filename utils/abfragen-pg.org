@@ -63,12 +63,14 @@ SELECT avg(cnt) FROM t;
 *** Threads und Kommentare je Artikel
 #+BEGIN_SRC sql
 SET search_path TO scrapetition;
-SELECT count(distinct thread) AS threads, count(distinct comment_id) AS comments, article.title
+SELECT count(distinct thread) AS threads, count(distinct comment_id) AS comments,
+article_id, article.title
 FROM comment LEFT JOIN article USING (article_id)
-GROUP BY article.title
+GROUP BY article_id, article.title
 ORDER BY threads DESC
 LIMIT 50;
 #+END_SRC
+
 ** Threads
 *** Kommentare je Thread
 #+BEGIN_SRC sql
@@ -103,6 +105,32 @@ WITH t as (
 SELECT users, comments, round(cast(comments AS DECIMAL) / users, 2) as dichte,  thread, a.title
 FROM t LEFT JOIN article AS a USING (article_id)
 ORDER BY dichte DESC LIMIT 30;
+#+END_SRC
+** Antworten
+*** Anzahl der Antworten je Kommentar
+#+BEGIN_SRC sql
+SET search_path TO scrapetition;
+SELECT count(*) as cnt, c.parent as id, c.thread, cc.name, article.title as artikel
+FROM comment as c
+LEFT JOIN article USING (article_id)
+CROSS JOIN comment as cc
+WHERE c.parent = cc.id
+GROUP BY c.parent, c.thread, cc.name, article.title
+ORDER BY cnt DESC
+LIMIT 15;
+#+END_SRC
+
+*** Anzahl der Antworten von verschiedenen Autoren je Nutzer
+#+BEGIN_SRC sql
+SET search_path TO scrapetition;
+SELECT count(*) AS antworten, count(distinct c.user_id) as autoren, 
+count(distinct cc.comment_id) AS beiträge, cc.name
+FROM comment AS c
+CROSS JOIN comment AS cc
+WHERE c.parent = cc.id
+GROUP BY cc.name
+ORDER BY antworten DESC
+LIMIT 15;
 #+END_SRC
 
 ** Benutzer
@@ -147,6 +175,7 @@ AND child.article_id = 26896    --  TODO
 GROUP BY parent.name, child.name ORDER BY Weight DESC; -- LIMIT 40;
 \o
 #+END_SRC
+
 ** Kookkurenz von Nutzern auf der Grundlagen von Threads
 *** Ausgabe hier
 #+BEGIN_SRC sql
@@ -161,7 +190,7 @@ GROUP BY Source, Target ORDER BY threads DESC
 LIMIT 40;
 #+END_SRC
 
-*** Ausgabe für Gephi in externe Datei
+*** Ausgabe für Gephi in externe Datei				     :output:
 Man wird sicher die Berechnung auf einen Artikel beschränken wollen...
 #+BEGIN_SRC sql :exports code
 SET search_path TO scrapetition;
@@ -174,5 +203,84 @@ WHERE a.thread = b.thread AND a.name != b.name
 WHERE a.article_id = 26896       -- TODO
 GROUP BY Source, Target ORDER BY Weight DESC;
 \o
+#+END_SRC
+
+* Dev
+** Konkomitanz von Nutzern auf der Grundlage von Threads
+*** Ausgabe für hdrametrics
+#+BEGIN_SRC sql :export code
+SET search_path TO scrapetition;
+\copy (SELECT thread, name FROM comment WHERE article_id = 16 GROUP BY thread, name ORDER BY thread) TO '/tmp/threadusers.sql' WITH CSV
+#+END_SRC
+
+*** Versuche in SQL
+#+BEGIN_SRC sql :export none
+SET search_path TO scrapetition;
+WITH user_pairs AS (
+SELECT a.user_id AS user_a, b.user_id AS user_b
+FROM "user" AS a CROSS JOIN "user" AS b
+WHERE a.user_id != b.user_id
+), threads AS (
+SELECT a.thread AS thread, a.user_id AS user_a, b.user_id AS user_b
+FROM comment AS a INNER JOIN comment AS b
+USING (thread) -- WHERE a.thread = b.thread
+WHERE a.article_id = 16 -- narrow to a certain article
+AND b.article_id = 16
+), both_present AS (
+SELECT user_pairs.user_a, user_pairs.user_b, 
+count(distinct threads.thread) AS present
+FROM user_pairs INNER JOIN threads
+USING (user_a, user_b)
+GROUP BY user_pairs.user_a, user_pairs.user_b
+), both_absent AS (
+SELECT * FROM comment
+)
+SELECT * FROM both_present
+ORDER BY present DESC
+LIMIT 15;
+#+END_SRC
+
+
+#+BEGIN_SRC sql :export none
+SET search_path TO scrapetition;
+WITH users_in_thread AS (
+SELECT user_id FROM comment
+WHERE article_id = 16 -- narrow to a certain article
+GROUP BY user_id
+), user_pairs AS (
+SELECT a.user_id AS user_a, b.user_id AS user_b
+FROM users_in_thread AS a CROSS JOIN "user" AS b
+WHERE a.user_id != b.user_id
+), threads AS (
+SELECT thread
+FROM comment
+WHERE article_id = 16 -- narrow to a certain article
+GROUP BY thread
+), apriori AS (
+SELECT user_a, user_b, thread
+FROM user_pairs CROSS JOIN threads
+), aposteriori AS (
+SELECT a.thread AS thread, a.user_id AS user_a, b.user_id AS user_b
+FROM comment AS a INNER JOIN comment AS b
+USING (thread) -- WHERE a.thread = b.thread
+WHERE a.article_id = 16 -- narrow to a certain article
+), both_present AS (
+SELECT user_a, user_b, count(distinct thread) present
+FROM apriori LEFT OUTER JOIN aposteriori
+USING (user_a, user_b, thread)
+WHERE aposteriori.thread is not null
+GROUP BY (apriori.user_a, apriori.user_b)
+), both_absent AS (
+SELECT user_a, user_b, count(distinct thread) absent
+FROM apriori LEFT OUTER JOIN aposteriori
+USING (user_a, user_b, thread)
+WHERE aposteriori.thread is null
+GROUP BY (apriori.user_a, apriori.user_b)
+)
+SELECT *
+FROM both_present LEFT JOIN both_absent
+USING (user_a, user_b)
+ORDER BY present DESC
+LIMIT 15;
 #+END_SRC
 
