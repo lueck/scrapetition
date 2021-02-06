@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Network.Scrapetition.App
   where
 
@@ -15,6 +17,7 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.Text as T
 import Data.Text.Encoding
 import Data.List
+import Network.HTTP.Types.Status (Status(..))
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
@@ -43,11 +46,11 @@ runScrapers urls seen = do
     Just next -> do
       L.log L.Info $ (show $ length urls) ++ " URLs left to scrape."
       L.log L.Info $ "Scraping " ++ next
-      body <- liftIO $ getUrl next
-      updateUrlSeenDate next -- fork thread
+      (status, body) <- liftIO $ getUrl next
+      updateUrlSeenDate next status -- fork thread
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
-        (scrape urls seen next body)
+        (scrape urls seen next $ fromMaybe "" body)
       let startDomain = Just $ _env_startDomain conf
           newUrls' = nub $
             if (_env_crossDomain conf)
@@ -102,15 +105,21 @@ nextUrl us seen = do
       | otherwise = Just x
 
 
-getUrl :: String -> IO T.Text
+getUrl :: String -> IO (Int, Maybe T.Text)
 getUrl url = do
-  body <- simpleHttp url
+  req <- parseRequest url
+  m <- newManager tlsManagerSettings
+  response <- httpLbs req m
+  let status = statusCode $ responseStatus response
+      body = if status < 400
+             then (Just $ decodeUtf8 $ L.toStrict $ responseBody response)
+             else Nothing
   -- FIXME: get encoding from response
   
   -- FIXME: Should we use Data.Text.Lazy? Since the same text is
   -- scraped several times with different scrapers, it seems better to
   -- use strict text.
-  return $ decodeUtf8 $ L.toStrict body
+  return (status, body)
 
 
 getAppString :: App c (String)

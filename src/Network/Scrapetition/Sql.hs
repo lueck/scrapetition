@@ -63,9 +63,10 @@ insertUrls urls = do
 
 -- | Update the last seen date of an URL.
 updateUrlSeenDate :: (IConnection c) =>
-                 URL
+                 URL -- ^ the URL
+              -> Int -- ^ the status code
               -> App c ()
-updateUrlSeenDate url = do
+updateUrlSeenDate url status = do
   conf <- ask
   case (_env_conn conf) of
     Nothing -> return ()
@@ -77,7 +78,7 @@ updateUrlSeenDate url = do
             hdbcDriverName conn ++ " database"
         Just stmt' -> do
           stmt <- liftIO $ prepare conn stmt'
-          liftIO $ execute stmt $ [toSql url]
+          liftIO $ execute stmt $ [toSql status, toSql url]
           liftIO $ commit conn
 
 

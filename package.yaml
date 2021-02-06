@@ -36,6 +36,7 @@ dependencies:
 - text
 - containers
 - forkable-monad
+- http-types
 
 library:
   source-dirs: src

@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 252f2e4020acc7295ed48ceaa3a8bceb7641dce99d7c20f3ef789aa26bb3b800
+-- hash: 187ed1f6169f7dfa7eefd7c404f28be822fa1472ae25fcad24834ff04bc6b59d
 
 name:           scrapetition
 version:        0.1.0.0
@@ -55,6 +55,7 @@ library
     , forkable-monad
     , hashmap
     , http-conduit
+    , http-types
     , lens
     , mtl
     , network-uri
@@ -82,6 +83,7 @@ executable scrapetition
     , forkable-monad
     , hashmap
     , http-conduit
+    , http-types
     , lens
     , mtl
     , network-uri
@@ -117,6 +119,7 @@ test-suite scrapetition-test
     , forkable-monad
     , hashmap
     , http-conduit
+    , http-types
     , lens
     , mtl
     , network-uri
