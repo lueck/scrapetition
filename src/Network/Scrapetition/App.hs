@@ -112,7 +112,8 @@ getUrl url = do
   response <- httpLbs req m
   let status = statusCode $ responseStatus response
       body = if status < 400
-             then (Just $ decodeUtf8 $ L.toStrict $ responseBody response)
+                -- Try to decode to UTF8, only parse for an encoding, if that fails.
+             then (either (const Nothing) Just $ decodeUtf8' $ L.toStrict $ responseBody response)
              else Nothing
   -- FIXME: get encoding from response
   
