@@ -134,7 +134,7 @@ _test_url conn dbms = do
 
   -- update of last seen date
   stmt <- getStmt dbms urlSeenDateUpdateStmt >>= prepare conn
-  executeMany stmt $ map ((:(iToSql 200):[]) . toSql) $ [head urls]
+  executeMany stmt $ map (((iToSql 200):) . (:[]) . toSql) $ [head urls]
 
   -- selection of seen urls
   stmt <- getStmt dbms urlSeenSelectStmt -- >>= prepare conn
