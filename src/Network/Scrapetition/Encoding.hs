@@ -24,7 +24,8 @@ decoder doc = do
     Just "l1" -> ("ISO-8859-1", const T.decodeLatin1)
     Just "CP819" -> ("ISO-8859-1", const T.decodeLatin1)
     -- TODO: add more
-    _ -> ("UTF8", T.decodeUtf8With)
+    Just enc -> (enc, T.decodeUtf8With)
+    _ -> ("UTF-8", T.decodeUtf8With) -- FIXME: return other enc?
 
 -- | Try to scrape the encoding.
 getEncoding :: Scraper BS.ByteString (Maybe T.Text)
