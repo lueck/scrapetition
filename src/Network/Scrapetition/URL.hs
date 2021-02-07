@@ -22,7 +22,7 @@ urlSeenDateUpdateStmt = Map.fromList
   ]
   where
     ever =
-      "UPDATE url SET (first_seen, last_seen, status) = (coalesce(first_seen, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP, ?) WHERE url = ?"
+      "UPDATE url SET (first_seen, last_seen, status, encoding) = (coalesce(first_seen, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP, ?, ?) WHERE url = ?"
 
 -- | Select the URLs already seen (visited).
 urlSeenSelectStmt :: Map.Map String String
@@ -71,6 +71,7 @@ createUrlTableSqlite tableName =
   "url_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" ++
   "url TEXT NOT NULL,\n" ++
   "status INTEGER,\n" ++
+  "encoding TEXT,\n" ++
   "-- time when first/last visited this url:\n" ++
   "first_seen timestamp,\n" ++
   "last_seen  timestamp,\n" ++

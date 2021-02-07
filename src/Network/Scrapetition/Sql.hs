@@ -7,6 +7,7 @@ import Control.Monad.Reader
 import Text.HTML.Scalpel (URL)
 import qualified Data.Map as Map
 import Data.Maybe
+import qualified Data.Text as T
 
 import Network.Scrapetition.AppType
 import Network.Scrapetition.Env
@@ -65,8 +66,9 @@ insertUrls urls = do
 updateUrlSeenDate :: (IConnection c) =>
                  URL -- ^ the URL
               -> Int -- ^ the status code
+              -> T.Text -- ^ the encoding
               -> App c ()
-updateUrlSeenDate url status = do
+updateUrlSeenDate url status encoding = do
   conf <- ask
   case (_env_conn conf) of
     Nothing -> return ()
@@ -78,7 +80,7 @@ updateUrlSeenDate url status = do
             hdbcDriverName conn ++ " database"
         Just stmt' -> do
           stmt <- liftIO $ prepare conn stmt'
-          liftIO $ execute stmt $ [toSql status, toSql url]
+          liftIO $ execute stmt $ [toSql status, toSql encoding, toSql url]
           liftIO $ commit conn
 
 

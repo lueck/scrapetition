@@ -49,7 +49,7 @@ runScrapers urls seen = do
       L.log L.Info $ (show $ length urls) ++ " URLs left to scrape."
       L.log L.Info $ "Scraping " ++ next
       (status, encoding, body) <- liftIO $ getUrl next
-      updateUrlSeenDate next status -- fork thread
+      updateUrlSeenDate next status encoding -- fork thread
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next $ fromMaybe "" body)
