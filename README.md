@@ -8,6 +8,9 @@ SQLite3 or [PostgreSQL](http://github.com/lueck/scrapetition-db).
 
 Right now it has scrapers for
 
+- Scraping URLs (links) from arbitrary web pages: HTTP status and
+  encoding are stored.
+
 - Comments on the articles on [http://www.zeit.de](http://www.zeit.de)
 
 I also wrote scraper modules for epetitionen.bundestag.de,

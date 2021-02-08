@@ -52,7 +52,9 @@ data UrlSource
   | NotSeenFromDB String -- ^ with domain restriction
 
 data ScraperSelector
-  = ZeitDeComments
+  = URLs
+  | AllURLs
+  | ZeitDeComments
 
 data OutputMethod
   = SQLite
@@ -89,10 +91,7 @@ opts_ = Opts
   <*> switch (long "lifo"
               <> short 'l'
               <> help "Last in, first out handling of URLs: With this switch the last found URL is scraped first. By default, the first found URL is scraped first.")
-  <*> (flag ZeitDeComments ZeitDeComments
-        (long "wwwZeitDe-comments"
-         <> help "Scraper for discussion on articles at http://www.zeit.de. This is the default scraper -- and the only one so far."))
-
+  <*> scraper_
   <*> ((SQLite <$>
         (strOption (short 's'
                     <> long "sqlite"
@@ -131,6 +130,20 @@ opts_ = Opts
                  <> showDefault
                  <> metavar "VOTINGTABLE")
 
+scraper_ :: Parser ScraperSelector
+scraper_ =
+  (flag URLs URLs
+    (long "urls"
+      <> help "Scraper for URLs (links), only. This is the default scraper."))
+  <|>
+  (flag' AllURLs
+    (long "fragments"
+      <> help "Scraper for all links, even pure fragment identifiers, that point to some location in the same document."))
+  <|>
+  (flag' ZeitDeComments
+    (long "wwwZeitDe-comments"
+      <> help "Scraper for discussion on articles at http://www.zeit.de."))
+
 
 -- scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
 
@@ -156,7 +169,8 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
     followLinkDispatchers True = [urlsCollectingDispatcher]
     followLinkDispatchers False = []
     genDispatchers ZeitDeComments = ZeitDe.zeitDeDispatchers
-    genDispatchers _ = []
+    genDispatchers URLs = []
+    genDispatchers AllURLs = allLinksDispatchers
 
 domainRestriction :: UrlSource -> String
 domainRestriction (SingleUrl url) = fromMaybe "unkown" $ domain $ Just url
