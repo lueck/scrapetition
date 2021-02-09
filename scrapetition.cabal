@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 937209ae9c45c1616efd95c2dfd588c1314e877a1dd7957830a860cb17e94943
+-- hash: 2710bc8a4b272dece74d3fc62b30a702116da909ec33bd51da4abe65764a1089
 
 name:           scrapetition
-version:        0.1.4.2
+version:        0.1.5.0
 description:    Please see the README on GitHub at <https://github.com/lueck/scrapetition#readme>
 homepage:       https://github.com/lueck/scrapetition#readme
 bug-reports:    https://github.com/lueck/scrapetition/issues

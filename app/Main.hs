@@ -152,10 +152,11 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
-    , _env_dispatchers = (followLinkDispatchers follow) ++
+    , _env_dispatchers = [urlsCollectingDispatcher] ++
                          (genDispatchers scrapper)
     , _env_logger = logHandle
     , _env_startDomain = domainRestriction source
+    , _env_followLinks = follow
     , _env_crossDomain = cross
     , _env_lifo = lifo
     , _env_insertUrlStmt = urlInsertStmt
@@ -166,8 +167,6 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
     , _env_selectUrlWhereStmt = urlSelectWhereStmt
     }
   where
-    followLinkDispatchers True = [urlsCollectingDispatcher]
-    followLinkDispatchers False = []
     genDispatchers ZeitDeComments = ZeitDe.zeitDeDispatchers
     genDispatchers URLs = []
     genDispatchers AllURLs = allLinksDispatchers
