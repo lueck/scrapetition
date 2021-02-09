@@ -17,22 +17,46 @@ import Network.Scrapetition.Item
 import Network.Scrapetition.Comment
 
 
+-- | Test if an attribute with the given name is present. (Did I
+-- overlock that in scalpel's API?)
+hasAttr :: String -> AttributePredicate
+hasAttr name = match (\k _ -> k==name)
+
 -- | Scrape all URLs which are given in the href attribute of an html
 -- anchor.
 links :: Scraper T.Text [URL]
-links =
-  chroots ("a" @: [match (\k _ -> k=="href")]) link -- (fmap (mkAbsolute url) link)
+links = links_ link
+
+-- | Return all URLs which are given in href attribute of an html
+-- anchor, but not the ones starting with '#', i.e. links to a
+-- fragment of the same document.
+linksDropSameFrag :: Scraper T.Text [URL]
+linksDropSameFrag = nonSameFragLinks_ link
+
+-- | Return all URLs which are given in the href attribute of an html
+-- anchor, but drop their fragment identifiers. Links targeting
+-- fragments of the same document are dropped, too.
+linksDropFrag :: Scraper T.Text [URL]
+linksDropFrag = nonSameFragLinks_ linkDropFrag
+
+-- | Construct an URL scraper for html anchors with a "href" attribute.
+links_ :: Scraper T.Text URL -> Scraper T.Text [URL]
+links_ scrpr =
+  chroots ("a" @: [hasAttr "href"]) scrpr
+
+-- | Construct an URL scraper for html anchors with a "href"
+-- attribute, but drop it when the link target starts with "#".
+nonSameFragLinks_ :: Scraper T.Text URL -> Scraper T.Text [URL]
+nonSameFragLinks_ scrpr =
+  chroots ("a" @: [match (\k v -> k=="href" && (fromMaybe False $ fmap ((/='#') . fst) $ uncons v))]) scrpr
 
 -- | Return the href attribute of an html anchor.
 link :: Scraper T.Text URL
 link = fmap T.unpack $ attr "href" $ "a"
 
--- | Return all URLs which are given in href attribute of an html
--- anchor, but not the ones starting with '#', i.e. links to a
--- fragment of the same document.
-nonSameFragLinks :: Scraper T.Text [URL]
-nonSameFragLinks =
-  chroots ("a" @: [match (\k v -> k=="href" && (fromMaybe False $ fmap ((/='#') . fst) $ uncons v))]) link
+-- | Return the href attribute of an html anchor, drop the fragment identifier.
+linkDropFrag :: Scraper T.Text URL
+linkDropFrag = fmap (T.unpack . T.takeWhile (/='#')) $ attr "href" $ "a"
 
 
 -- | Scraper that returns no URLs at all.
@@ -43,12 +67,13 @@ noUrls = pure []
 packedEmpty :: Scraper T.Text [ScrapedItem]
 packedEmpty = pure []
 
--- | A dispatcher for collecting URLs only.
+-- | A dispatcher for collecting URLs only. This uses the
+-- 'linksDropFrag' scraper, so fragment identifiers are dropped.
 urlsCollectingDispatcher :: Dispatcher
 urlsCollectingDispatcher = Dispatcher
   { _dptchr_urlScheme = ".*"
   , _dptchr_scraper = const Nothing
-  , _dptchr_urlScraper = flip scrapeStringLike nonSameFragLinks
+  , _dptchr_urlScraper = flip scrapeStringLike linksDropFrag
   , _dptchr_insertItemStmt = Map.empty
   , _dptchr_itemName = "no item (just urls)"
   }
