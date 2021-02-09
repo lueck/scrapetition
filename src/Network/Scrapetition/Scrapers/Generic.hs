@@ -41,10 +41,15 @@ links_ scrpr = chroots ("a" @: [hasAttr "href"]) scrpr
 
 -- | Construct an URL scraper for html anchors with a "href"
 -- attribute, but drop it when the link target starts with "#". Links
--- from the protocol "mailto:" are dropped, too.
+-- from the protocols "mailto:" and "javascript:" are dropped, too.
 nonSameFragLinks_ :: Scraper T.Text URL -> Scraper T.Text [URL]
 nonSameFragLinks_ scrpr =
-  chroots ("a" @: [match (\k v -> k=="href" && (not $ "#" `isPrefixOf` v) && (not $ "mailto:" `isPrefixOf` v))]) scrpr
+  chroots ("a" @: [match (\k v ->
+                            k=="href" &&
+                            (not $ "#" `isPrefixOf` v) &&
+                            (not $ "mailto:" `isPrefixOf` v) &&
+                            (not $ "javascript:" `isPrefixOf` v)
+                         )]) scrpr
 
 -- | Return the href attribute of an html anchor.
 link :: Scraper T.Text URL
