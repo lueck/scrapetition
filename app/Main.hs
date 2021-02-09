@@ -54,6 +54,7 @@ data UrlSource
 data ScraperSelector
   = URLs
   | AllURLs
+  | JustHit
   | ZeitDeComments
 
 data OutputMethod
@@ -140,6 +141,10 @@ scraper_ =
     (long "fragments"
       <> help "Scraper for all links, even pure fragment identifiers, that point to some location in the same document."))
   <|>
+  (flag' JustHit
+    (long "nothing"
+      <> help "Do not scrape anything, just hit the URL. This way, we get the HTTP status and content encoding, but do not add new URLs or items to the database."))
+  <|>
   (flag' ZeitDeComments
     (long "wwwZeitDe-comments"
       <> help "Scraper for discussion on articles at http://www.zeit.de."))
@@ -152,7 +157,7 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
-    , _env_dispatchers = [urlsCollectingDispatcher] ++
+    , _env_dispatchers = (getUrlsDispatcher scrapper) ++
                          (genDispatchers scrapper)
     , _env_logger = logHandle
     , _env_startDomain = domainRestriction source
@@ -167,9 +172,12 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
     , _env_selectUrlWhereStmt = urlSelectWhereStmt
     }
   where
+    getUrlsDispatcher JustHit = []
+    getUrlsDispatcher _ = [urlsCollectingDispatcher]
     genDispatchers ZeitDeComments = ZeitDe.zeitDeDispatchers
     genDispatchers URLs = []
     genDispatchers AllURLs = allLinksDispatchers
+    genDispatchers JustHit = []
 
 domainRestriction :: UrlSource -> String
 domainRestriction (SingleUrl url) = fromMaybe "unkown" $ domain $ Just url
