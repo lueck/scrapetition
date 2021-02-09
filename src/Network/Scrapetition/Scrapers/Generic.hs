@@ -7,14 +7,10 @@ import Text.HTML.Scalpel
 import qualified Data.Text as T
 import qualified Data.Map as Map
 import Data.Time
-import Data.Maybe
 import Data.List
 
-import Network.Scrapetition.Env
 import Network.Scrapetition.Dispatcher
-import Network.Scrapetition.Utils
 import Network.Scrapetition.Item
-import Network.Scrapetition.Comment
 
 
 -- | Test if an attribute with the given name is present. (Did I
@@ -41,14 +37,14 @@ linksDropFrag = nonSameFragLinks_ linkDropFrag
 
 -- | Construct an URL scraper for html anchors with a "href" attribute.
 links_ :: Scraper T.Text URL -> Scraper T.Text [URL]
-links_ scrpr =
-  chroots ("a" @: [hasAttr "href"]) scrpr
+links_ scrpr = chroots ("a" @: [hasAttr "href"]) scrpr
 
 -- | Construct an URL scraper for html anchors with a "href"
--- attribute, but drop it when the link target starts with "#".
+-- attribute, but drop it when the link target starts with "#". Links
+-- from the protocol "mailto:" are dropped, too.
 nonSameFragLinks_ :: Scraper T.Text URL -> Scraper T.Text [URL]
 nonSameFragLinks_ scrpr =
-  chroots ("a" @: [match (\k v -> k=="href" && (fromMaybe False $ fmap ((/='#') . fst) $ uncons v))]) scrpr
+  chroots ("a" @: [match (\k v -> k=="href" && (not $ "#" `isPrefixOf` v) && (not $ "mailto:" `isPrefixOf` v))]) scrpr
 
 -- | Return the href attribute of an html anchor.
 link :: Scraper T.Text URL

@@ -38,3 +38,5 @@ test_linksDropFrag_onlyFrag = do
 test_linksDropFrag_withoutHref = do
   assertEqual (Just []) $ scrapeStringLike "<a name=\"github.com\">" linksDropFrag
 
+test_linksDropFrag_mailto = do
+  assertEqual (Just []) $ scrapeStringLike "<a href=\"mailto:me@github.com\">" linksDropFrag
