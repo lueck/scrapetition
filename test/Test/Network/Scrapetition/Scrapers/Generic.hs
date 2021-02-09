@@ -40,3 +40,6 @@ test_linksDropFrag_withoutHref = do
 
 test_linksDropFrag_mailto = do
   assertEqual (Just []) $ scrapeStringLike "<a href=\"mailto:me@github.com\">" linksDropFrag
+
+test_linksDropFrag_javascript = do
+  assertEqual (Just []) $ scrapeStringLike "<a href=\"javascript:history.go(-1)\">" linksDropFrag
