@@ -54,16 +54,17 @@ runScrapers urls seen = do
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next $ fromMaybe "" body)
       let startDomain = Just $ _env_startDomain conf
-          newUrls' = nub $
+          newUrls' = map (mkAbsolute next) $
+            if (_env_followLinks conf) then (concat newUrls) else []
+          newUrls'' = nub $
             if (_env_crossDomain conf)
-            then (map (mkAbsolute next) $ concat newUrls)
-            else (filter ((==startDomain) . domain . Just) $
-                  map (mkAbsolute next) $ concat newUrls)
+            then newUrls'
+            else (filter ((==startDomain) . domain . Just) newUrls')
           seen' = next:seen
           unionOfUrls = if (_env_lifo conf)
             -- do not reverse newUrls' in order to not break any scraper logic
-            then (newUrls' `union` urls)
-            else (urls `union` newUrls')
+            then (newUrls'' `union` urls)
+            else (urls `union` newUrls'')
       liftIO $ threadDelay 2000000
       runScrapers (unionOfUrls \\ seen') seen'
 
