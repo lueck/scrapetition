@@ -52,7 +52,10 @@ data UrlSource
   | NotSeenFromDB String -- ^ with domain restriction
 
 data ScraperSelector
-  = ZeitDeComments
+  = URLs
+  | AllURLs
+  | JustHit
+  | ZeitDeComments
 
 data OutputMethod
   = SQLite
@@ -89,10 +92,7 @@ opts_ = Opts
   <*> switch (long "lifo"
               <> short 'l'
               <> help "Last in, first out handling of URLs: With this switch the last found URL is scraped first. By default, the first found URL is scraped first.")
-  <*> (flag ZeitDeComments ZeitDeComments
-        (long "wwwZeitDe-comments"
-         <> help "Scraper for discussion on articles at http://www.zeit.de. This is the default scraper -- and the only one so far."))
-
+  <*> scraper_
   <*> ((SQLite <$>
         (strOption (short 's'
                     <> long "sqlite"
@@ -131,6 +131,24 @@ opts_ = Opts
                  <> showDefault
                  <> metavar "VOTINGTABLE")
 
+scraper_ :: Parser ScraperSelector
+scraper_ =
+  (flag URLs URLs
+    (long "urls"
+      <> help "Scraper for URLs (links), only. This is the default scraper."))
+  <|>
+  (flag' AllURLs
+    (long "fragments"
+      <> help "Scraper for all links, even pure fragment identifiers, that point to some location in the same document."))
+  <|>
+  (flag' JustHit
+    (long "nothing"
+      <> help "Do not scrape anything, just hit the URL. This way, we get the HTTP status and content encoding, but do not add new URLs or items to the database."))
+  <|>
+  (flag' ZeitDeComments
+    (long "wwwZeitDe-comments"
+      <> help "Scraper for discussion on articles at http://www.zeit.de."))
+
 
 -- scraperRegistry ZeitDeComments = ZeitDe.commentsThreadsAndNext
 
@@ -139,10 +157,11 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
   logHandle <- getLogger logfile
   return $ Env
     { _env_conn = Nothing::Maybe Sqlite3.Connection
-    , _env_dispatchers = (followLinkDispatchers follow) ++
+    , _env_dispatchers = (getUrlsDispatcher scrapper) ++
                          (genDispatchers scrapper)
     , _env_logger = logHandle
     , _env_startDomain = domainRestriction source
+    , _env_followLinks = follow
     , _env_crossDomain = cross
     , _env_lifo = lifo
     , _env_insertUrlStmt = urlInsertStmt
@@ -153,10 +172,12 @@ evalOpts opts@(Opts source follow cross _ lifo scrapper _ logfile itemTab userTa
     , _env_selectUrlWhereStmt = urlSelectWhereStmt
     }
   where
-    followLinkDispatchers True = [urlsCollectingDispatcher]
-    followLinkDispatchers False = []
+    getUrlsDispatcher JustHit = []
+    getUrlsDispatcher _ = [urlsCollectingDispatcher]
     genDispatchers ZeitDeComments = ZeitDe.zeitDeDispatchers
-    genDispatchers _ = []
+    genDispatchers URLs = []
+    genDispatchers AllURLs = allLinksDispatchers
+    genDispatchers JustHit = []
 
 domainRestriction :: UrlSource -> String
 domainRestriction (SingleUrl url) = fromMaybe "unkown" $ domain $ Just url

@@ -8,6 +8,9 @@ SQLite3 or [PostgreSQL](http://github.com/lueck/scrapetition-db).
 
 Right now it has scrapers for
 
+- Scraping URLs (links) from arbitrary web pages: HTTP status and
+  encoding are stored.
+
 - Comments on the articles on [http://www.zeit.de](http://www.zeit.de)
 
 I also wrote scraper modules for epetitionen.bundestag.de,
@@ -45,58 +48,62 @@ Scrapetition is a command line tool. Here's its help string:
 ```
 scrapetition - scrape comments (discussions) from social media web sites.
 
-Usage
------
-
-scrapetition ((-u|--url URL) | (-d|--db-not-seen DOMAIN))
-                  [-f|--follow-links] [-x|--cross-domain] [-a|--visit-again]
-                  [-l|--lifo] [--wwwZeitDe-comments] ([-s|--sqlite DATABASE] |
-                  [-p|--postgresql CONNECTION] | [-r|--raw])
-                  [--logfile LOGFILE] [--items-table ITEMTABLE]
-                  [--users-table USERTABLE] [--voting-table VOTINGTABLE]
-scrapetition scrapes discussions from social media web sites. It starts with a
-URL given by the user and tries to scrape all comments on this URL and
-subsequent URL.
+Usage: scrapetition ((-u|--url URL) | (-d|--db-not-seen DOMAIN))
+                    [-f|--follow-links] [-x|--cross-domain] [-a|--visit-again]
+                    [-l|--lifo] ([--urls] | [--fragments] | [--nothing] |
+                    [--wwwZeitDe-comments]) ([-s|--sqlite DATABASE] |
+                    [-p|--postgresql CONNECTION] | [-r|--raw])
+                    [--logfile LOGFILE] [--items-table ITEMTABLE]
+                    [--users-table USERTABLE] [--voting-table VOTINGTABLE]
+  scrapetition scrapes discussions from social media web sites. It starts with a
+  URL given by the user and tries to scrape all comments on this URL and
+  subsequent URL.
 
 Available options:
--h,--help                Show this help text
--u,--url URL             A URL to start with.
--d,--db-not-seen DOMAIN  Visit the URLs from the database, that were no not
-                         visited yet. A domain must be given to which the
-                         crawling of URLs is restricted. This restriction can
-                         be overridden with the --cross-domain option.
--f,--follow-links        Follow all links found on a page. Use this in
-                         combination with --cross-domain for cross-domain
-                         scraping.
--x,--cross-domain        Follow links pointing outside of the domain of the
-                         start URL.
--a,--visit-again         Visit URLs again. Without this option, URLs will not
-                         be visited and scraped, if they are already in the
-                         database and marked as visited.
--l,--lifo                Last in, first out handling of URLs: With this switch
-                         the last found URL is scraped first. By default, the
-                         first found URL is scraped first.
---wwwZeitDe-comments     Scraper for discussion on articles at
-                         http://www.zeit.de. This is the default scraper --
-                         and the only one so far.
--s,--sqlite DATABASE     Output to SQLite3 database. This is the default
-                         output method. (default: "data.db")
--p,--postgresql CONNECTION
-                         Output to PostgreSQL database given by the connection
-                         string. See
-                         http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT
-                         for info about the connection string. Example: '-p
-                         "host=localhost dbname=scrapetition_test user=me
-                         password=mine"'
--r,--raw                 Output raw data.
---logfile LOGFILE        Specify a file for logging messages. By default,
-                         messages are logged to stderr.
---items-table ITEMTABLE  Table name for scraped items. (default: "comments")
---users-table USERTABLE  Table name for scraped users. (default: "users")
---voting-table VOTINGTABLE
-                         Table name for voting by users about
-                         items. (default: "comment_voting")
-
+  -h,--help                Show this help text
+  -u,--url URL             A URL to start with.
+  -d,--db-not-seen DOMAIN  Visit the URLs from the database, that were no not
+                           visited yet. A domain must be given to which the
+                           crawling of URLs is restricted. This restriction can
+                           be overridden with the --cross-domain option.
+  -f,--follow-links        Follow all links found on a page. Use this in
+                           combination with --cross-domain for cross-domain
+                           scraping.
+  -x,--cross-domain        Follow links pointing outside of the domain of the
+                           start URL.
+  -a,--visit-again         Visit URLs again. Without this option, URLs will not
+                           be visited and scraped, if they are already in the
+                           database and marked as visited.
+  -l,--lifo                Last in, first out handling of URLs: With this switch
+                           the last found URL is scraped first. By default, the
+                           first found URL is scraped first.
+  --urls                   Scraper for URLs (links), only. This is the default
+                           scraper.
+  --fragments              Scraper for all links, even pure fragment
+                           identifiers, that point to some location in the same
+                           document.
+  --nothing                Do not scrape anything, just hit the URL. This way,
+                           we get the HTTP status and content encoding, but do
+                           not add new URLs or items to the database.
+  --wwwZeitDe-comments     Scraper for discussion on articles at
+                           http://www.zeit.de.
+  -s,--sqlite DATABASE     Output to SQLite3 database. This is the default
+                           output method. (default: "data.db")
+  -p,--postgresql CONNECTION
+                           Output to PostgreSQL database given by the connection
+                           string. See
+                           http://www.postgresql.org/docs/8.1/static/libpq.html#LIBPQ-CONNECT
+                           for info about the connection string. Example: '-p
+                           "host=localhost dbname=scrapetition_test user=me
+                           password=mine"'
+  -r,--raw                 Output raw data.
+  --logfile LOGFILE        Specify a file for logging messages. By default,
+                           messages are logged to stderr.
+  --items-table ITEMTABLE  Table name for scraped items. (default: "comments")
+  --users-table USERTABLE  Table name for scraped users. (default: "users")
+  --voting-table VOTINGTABLE
+                           Table name for voting by users about
+                           items. (default: "comment_voting")
 ```
 
 <!-- END USAGE -->

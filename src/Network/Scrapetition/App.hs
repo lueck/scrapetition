@@ -15,6 +15,7 @@ import System.Environment
 import Network.HTTP.Conduit
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Text as T
+import qualified Data.Text.Encoding.Error as T
 import Data.Text.Encoding
 import Data.List
 import Network.HTTP.Types.Status (Status(..))
@@ -26,6 +27,7 @@ import Network.Scrapetition.Item
 import Network.Scrapetition.Utils
 import Network.Scrapetition.Sql
 import Network.Scrapetition.Logging as L
+import Network.Scrapetition.Encoding
 
 
 -- | Run a scraper and call it recursively on the scraped URLs.
@@ -46,22 +48,23 @@ runScrapers urls seen = do
     Just next -> do
       L.log L.Info $ (show $ length urls) ++ " URLs left to scrape."
       L.log L.Info $ "Scraping " ++ next
-      (status, body) <- liftIO $ getUrl next
-      updateUrlSeenDate next status -- fork thread
+      (status, encoding, body) <- liftIO $ getUrl next
+      updateUrlSeenDate next status encoding -- fork thread
       -- run scrapers
       newUrls <- forM (filter (dispatch next) dispatchers) 
         (scrape urls seen next $ fromMaybe "" body)
       let startDomain = Just $ _env_startDomain conf
-          newUrls' = nub $
+          newUrls' = map (mkAbsolute next) $
+            if (_env_followLinks conf) then (concat newUrls) else []
+          newUrls'' = nub $
             if (_env_crossDomain conf)
-            then (map (mkAbsolute next) $ concat newUrls)
-            else (filter ((==startDomain) . domain . Just) $
-                  map (mkAbsolute next) $ concat newUrls)
+            then newUrls'
+            else (filter ((==startDomain) . domain . Just) newUrls')
           seen' = next:seen
           unionOfUrls = if (_env_lifo conf)
             -- do not reverse newUrls' in order to not break any scraper logic
-            then (newUrls' `union` urls)
-            else (urls `union` newUrls')
+            then (newUrls'' `union` urls)
+            else (urls `union` newUrls'')
       liftIO $ threadDelay 2000000
       runScrapers (unionOfUrls \\ seen') seen'
 
@@ -105,21 +108,23 @@ nextUrl us seen = do
       | otherwise = Just x
 
 
-getUrl :: String -> IO (Int, Maybe T.Text)
+getUrl :: String -> IO (Int, T.Text, Maybe T.Text)
 getUrl url = do
   req <- parseRequest url
   m <- newManager tlsManagerSettings
   response <- httpLbs req m
   let status = statusCode $ responseStatus response
+      rBody = L.toStrict $ responseBody response
+      (enc, dec) = decoder rBody
       body = if status < 400
-             then (Just $ decodeUtf8 $ L.toStrict $ responseBody response)
+             then Just $ dec T.lenientDecode rBody
              else Nothing
   -- FIXME: get encoding from response
   
   -- FIXME: Should we use Data.Text.Lazy? Since the same text is
   -- scraped several times with different scrapers, it seems better to
   -- use strict text.
-  return (status, body)
+  return (status, enc, body)
 
 
 getAppString :: App c (String)

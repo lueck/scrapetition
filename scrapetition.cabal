@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 32cffd33121a63901af931343b9876a965398adea914f7969e56df5ad8637974
+-- hash: d046bb54ef5524ec8de82a24f484d36f066d92bf2bd70a8ddf3bf7715de6c0e7
 
 name:           scrapetition
-version:        0.1.1.0
+version:        0.1.5.1
 description:    Please see the README on GitHub at <https://github.com/lueck/scrapetition#readme>
 homepage:       https://github.com/lueck/scrapetition#readme
 bug-reports:    https://github.com/lueck/scrapetition/issues
@@ -32,6 +32,7 @@ library
       Network.Scrapetition.Article
       Network.Scrapetition.Comment
       Network.Scrapetition.Dispatcher
+      Network.Scrapetition.Encoding
       Network.Scrapetition.Env
       Network.Scrapetition.Item
       Network.Scrapetition.Logging
@@ -100,6 +101,8 @@ test-suite scrapetition-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.Network.Scrapetition.Encoding
+      Test.Network.Scrapetition.Scrapers.Generic
       Test.Network.Scrapetition.Scrapers.ZeitDe
       Test.Network.Scrapetition.Sql
       Test.Network.Scrapetition.SqlInjection

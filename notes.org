@@ -1,3 +1,4 @@
+#+PROPERTY: header-args:sqlite :db data.db
 * Netz über Scalpel
 ** Mit Functoren, Applicative und Monaden:
 http://hs.eraveline.eu/posts/scalpel.html
@@ -12,4 +13,23 @@ https://github.com/haasn/hsbooru
 
 https://github.com/grafted-in/web-scraping-engine
 
+* SQL
+** Graph-based url scraping
+#+begin_src sqlite
+SELECT url_id, url, 0 as depth FROM url WHERE url like '%index.html%';
+#+end_src
 
+#+begin_src sqlite
+SELECT source, target, 1 as depth FROM url_scraped
+LEFT JOIN url ON source = url_id WHERE url like '%index.html%';
+#+end_src
+
+#+begin_src sqlite
+WITH RECURSIVE url_graph AS (
+     SELECT source, target, 1 as depth FROM url_scraped
+     LEFT JOIN url ON source = url_id WHERE url like '%index.html%'
+     UNION ALL
+     SELECT s.source, s.target, url_graph.depth + 1 FROM url_scraped AS s
+     INNER JOIN url_graph ON s.source = url_graph.target)
+     SELECT count(*) FROM url_graph WHERE depth = 2;
+#+end_src

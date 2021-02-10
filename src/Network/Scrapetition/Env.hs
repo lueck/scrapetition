@@ -17,6 +17,7 @@ data Env c = Env
   , _env_dispatchers :: [Dispatcher]
   , _env_logger :: Handle
   , _env_startDomain :: String
+  , _env_followLinks :: Bool
   , _env_crossDomain :: Bool
   , _env_lifo :: Bool
   , _env_insertUrlStmt :: Map.Map String String

@@ -7,6 +7,9 @@ import Test.Framework.BlackBoxTest
 import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Utils
 import {-@ HTF_TESTS @-} Test.Network.Scrapetition.SqlInjection
 import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Sql
+import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Encoding
+
+import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Scrapers.Generic
 import {-@ HTF_TESTS @-} Test.Network.Scrapetition.Scrapers.ZeitDe
 
 main = htfMain htf_importedTests
